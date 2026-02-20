@@ -13,7 +13,7 @@ object NetFrame: TNetFrame
   object edtHubIP: TEdit
     Touch.InteractiveGestures = [LongTap, DoubleTap]
     TabOrder = 2
-    Position.X = 408.000000000000000000
+    Position.X = 472.000000000000000000
     Position.Y = 144.000000000000000000
     Size.Width = 169.000000000000000000
     Size.Height = 22.000000000000000000
@@ -34,7 +34,6 @@ object NetFrame: TNetFrame
     TabOrder = 5
     Text = 'Start Hub'
     TextSettings.Trimming = None
-    OnClick = btnStartHubClick
   end
   object btnHost: TButton
     Position.X = 536.000000000000000000
@@ -42,7 +41,6 @@ object NetFrame: TNetFrame
     TabOrder = 4
     Text = 'Host'
     TextSettings.Trimming = None
-    OnClick = btnHostClick
   end
   object btnRefresh: TButton
     Position.X = 536.000000000000000000
@@ -50,12 +48,11 @@ object NetFrame: TNetFrame
     TabOrder = 3
     Text = 'Refresh'
     TextSettings.Trimming = None
-    OnClick = btnRefreshClick
   end
   object lbxGames: TListBox
     Position.X = 64.000000000000000000
     Position.Y = 144.000000000000000000
-    Size.Width = 296.000000000000000000
+    Size.Width = 377.000000000000000000
     Size.Height = 377.000000000000000000
     Size.PlatformDefault = False
     TabOrder = 6
@@ -63,19 +60,19 @@ object NetFrame: TNetFrame
     DefaultItemStyles.ItemStyle = ''
     DefaultItemStyles.GroupHeaderStyle = ''
     DefaultItemStyles.GroupFooterStyle = ''
-    Viewport.Width = 292.000000000000000000
+    Viewport.Width = 373.000000000000000000
     Viewport.Height = 373.000000000000000000
   end
   object memLog: TMemo
     Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
     DataDetectorTypes = []
-    Position.X = 368.000000000000000000
-    Position.Y = 432.000000000000000000
-    Size.Width = 273.000000000000000000
-    Size.Height = 89.000000000000000000
+    Position.X = 472.000000000000000000
+    Position.Y = 360.000000000000000000
+    Size.Width = 169.000000000000000000
+    Size.Height = 161.000000000000000000
     Size.PlatformDefault = False
     TabOrder = 7
-    Viewport.Width = 269.000000000000000000
-    Viewport.Height = 85.000000000000000000
+    Viewport.Width = 165.000000000000000000
+    Viewport.Height = 157.000000000000000000
   end
 end

@@ -39,11 +39,11 @@ type
     procedure RegisterWithHub(const aSession: TGameSession);
     procedure HandleRegistration(const aData: String; aContext: TIdContext);
     procedure OnCleanupTimer(Sender: TObject);
+    function ConnectToHub: Boolean;
   public
     constructor Create;
     destructor Destroy; override;
 
-    function ConnectToHub: Boolean;
     function FetchRemoteConnections: TArray<TGameSession>;
     function DiscoverAndJoin(APort: Integer): Boolean;
     procedure StartHosting(APort: Integer);

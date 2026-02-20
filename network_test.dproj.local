@@ -14,4 +14,10 @@
     <Transaction>2026-02-19 22:38:08.449,C:\Users\maide\OneDrive\Documents\Embarcadero\Studio\Projects\TestBuilds\test_builds\uxfrmNetFrame.fmx=C:\Users\maide\OneDrive\Documents\Embarcadero\Studio\Projects\TestBuilds\test_builds\Unit1.fmx</Transaction>
     <Transaction>2026-02-19 22:38:08.449,C:\Users\maide\OneDrive\Documents\Embarcadero\Studio\Projects\TestBuilds\test_builds\uxfrmNetFrame.pas=C:\Users\maide\OneDrive\Documents\Embarcadero\Studio\Projects\TestBuilds\test_builds\Unit1.pas</Transaction>
   </Transactions>
+  <ProjectSortOrder AutoSort="0" SortType="0">
+    <File Path="uNetworkManager.pas"/>
+    <File Path="uNetworkTypes.pas"/>
+    <File Path="uxfrmNetFrame.pas"/>
+    <File Path="uxfrmNetFrame.fmx"/>
+  </ProjectSortOrder>
 </BorlandProject>
