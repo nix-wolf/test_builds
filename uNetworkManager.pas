@@ -18,7 +18,9 @@ uses
   uNetworkTypes;
 
 type
-  TNetworkRole = (nrNone, nrClient, nrServer);
+  TNetworkRole = (nrNone, nrClient, nrServer, nrHub);
+
+  TLogEvent = procedure(const aMsg: String) of Object;
 
   TNetworkManager = class(TObject)
   private
@@ -32,6 +34,8 @@ type
     FActiveSessions: TList<TGameSession>;
     FHubIP: String;
     FGameName: String;
+    FOnLog: TLogEvent;
+    FDiscoveryAttempts: Integer;
 
     procedure OnBroadcastTimer(Sender: TObject);
     procedure OnUDPRead(aThread: TIdUDPListenerThread; const aData: TIdBytes; aBinding: TIdSocketHandle);
@@ -39,6 +43,7 @@ type
     procedure RegisterWithHub(const aSession: TGameSession);
     procedure HandleRegistration(const aData: String; aContext: TIdContext);
     procedure OnCleanupTimer(Sender: TObject);
+    procedure LogToUI(const aMsg: String);
   public
     constructor Create;
     destructor Destroy; override;
@@ -46,11 +51,12 @@ type
     function ConnectToHub: Boolean;
     function FetchRemoteConnections: TArray<TGameSession>;
     function DiscoverAndJoin(APort: Integer): Boolean;
-    procedure StartHosting(APort: Integer);
+    procedure StartHostingHub(APort: Integer);
 
     property Role: TNetworkRole read FRole;
     property HubIP: String Read FHubIP write FHubIP;
     property GameName: String Read FGameName write FGameName;
+    property OnLog: TLogEvent read FOnLog write FOnLog;
 
   end;
 implementation
@@ -63,7 +69,7 @@ begin
   if FHubIP = '' then Exit;
 
   FTCPClient.Host := FHubIP;
-  FTCPClient.Port := 6000;
+  FTCPClient.Port := FServerPort;
 
   try
     if not FTCPClient.Connected then
@@ -79,7 +85,7 @@ constructor TNetworkManager.Create;
 begin
   inherited Create;
   FRole := nrNone;
-
+  FServerPort := 6000;
   FUDPListener := TIdUDPServer.Create(nil);
   FUDPListener.OnUDPRead := OnUDPRead;
   FUDPListener.ThreadedEvent := True;
@@ -93,6 +99,7 @@ begin
   FBroadcastTimer.Interval := 2000;
   FBroadcastTimer.OnTimer := OnBroadcastTimer;
 
+  FTCPServer.OnExecute := OnHubExecute;
 end;
 
 destructor TNetworkManager.Destroy;
@@ -123,6 +130,7 @@ begin
   end; {WHILE}
 
   if FRole = nrClient then begin
+    LogToUI('Hub Found... Connecting');
     FTCPClient.Port := aPort;
     try
       FTCPClient.Connect;
@@ -133,8 +141,9 @@ begin
   end; {IF}
 
   if FRole = nrNone then begin
+    LogToUI('No Hub Found Starting a Hub...');
     FUDPListener.Active := False;
-    StartHosting(APort);
+//    StartHosting(APort);
     Result := True;
   end; {IF}
 end;
@@ -145,6 +154,7 @@ function TNetworkManager.FetchRemoteConnections: TArray<TGameSession>;
     aGamesData: TArray<String>;
     i: Integer;
 begin
+  LogToUI('Fetching Games');
   if not FTCPClient.Connected then Exit;
 
   FTCPClient.IOHandler.WriteLn('GET_GAMES');
@@ -164,6 +174,7 @@ procedure TNetworkManager.HandleRegistration(const aData: String;
     i: Integer;
     aFound: Boolean;
 begin
+  LogToUI('Handling Registration');
   aNewSession.FromNetworkString(aData);
 
   if aNewSession.HostIP = '' then
@@ -188,28 +199,45 @@ begin
   end;
 end;
 
+procedure TNetworkManager.LogToUI(const aMsg: String);
+begin
+  if Assigned(FOnLog) then begin
+    TThread.Queue(nil, procedure begin
+      FOnLog(aMsg);
+    end);{PROCEDURE}
+  end; {IF}
+end;
+
 procedure TNetworkManager.OnBroadcastTimer(Sender: TObject);
 begin
-  if FRole = nrServer then begin
-    try
-      FUDPClient.BroadcastEnabled := True;
-
-      if FHubIP <> '' then
-       FUDPClient.Send(FHubIP, FServerPort, 'HEARTBEAT,' + FGameName);
-
-      FUDPClient.Send('255.255.255.255', FServerPort, 'VE_PROJ_WOLF');
-    except
-      on E: Exception do
-        //handle exception
-    end;
-
+  if (FRole = nrClient) or (FRole = nrServer) then begin
+    if FHubIP <> '' then begin
+      LogToUI('UDP HEARTBEAT...');
+      FUDPClient.Send(FHubIP, FServerPort, 'HEARTBEAT,' + FGameName);
+    end; {IF}
   end; {IF}
+
+  if FRole = nrNone then begin
+    if FDiscoveryAttempts >= 3 then begin
+      FRole := nrHub;
+      StartHostingHub(FServerPort);
+      FBroadcastTimer.Enabled := False;
+    end {IF}
+    else begin
+      FUDPClient.BroadcastEnabled := True;
+      LogToUI('Checking for Active Hub');
+      FUDPClient.Send('255.255.255.255', FServerPort, 'VE_PROJ_WOLF');
+      Inc(FDiscoveryAttempts);
+    end; {ELSE}
+  end; {IF}
+
 end;
 
 procedure TNetworkManager.OnCleanupTimer(Sender: TObject);
   var
     i: Integer;
 begin
+  LogToUI('Cleaning Up Sessions.');
   TMonitor.Enter(FActiveSessions);
   try
     for i := FActiveSessions.Count - 1 downto 0 do begin
@@ -231,6 +259,7 @@ begin
   aRequest := aContext.Connection.IOHandler.ReadLn;
 
   if aRequest = 'GET_GAMES' then begin
+    LogToUI('Request for Games List.');
     aResponse := '';
     for aSession in FActiveSessions do
       aResponse := aResponse + aSession.ToNetworkString + ';';
@@ -238,7 +267,8 @@ begin
     AContext.Connection.IOHandler.WriteLn(aResponse);
   end {IF}
   else if aRequest.StartsWith('REGISTER,') then begin
-    //add new host game
+    LogToUI('Register Request.');
+    HandleRegistration(aRequest, aContext);
   end; {ELSE}
 
 end;
@@ -251,41 +281,61 @@ procedure TNetworkManager.OnUDPRead(aThread: TIdUDPListenerThread;
 begin
   aMsg := BytesToString(aData);
 
-  if aMsg = 'VE_PROJ_WOLF' then begin
-    FRole := nrClient;
-    FTCPClient.Host := aBinding.PeerIP;
-  end; {IF}
+  case FRole of
+    nrNone: begin
+      if aMsg = 'VE_PROJ_WOLF' then begin
+        LogToUI('Received Response From Hub, Connecting to TCP Lobby');
+        FHubIP := aBinding.PeerIP;
+        FTCPClient.Host := FHubIP;
+        FTCPClient.Port := FServerPort;
+        FRole := nrClient;
 
-  if aMsg.StartsWith('HEARTBEAT,') then begin
-    TMonitor.Enter(FActiveSessions);
-    try
-      for i := 0 to FActiveSessions.Count - 1 do begin
-        if FActiveSessions[i].HostIP = aBinding.PeerIP then begin
-          var aTemp := FActiveSessions[I];
-          aTemp.LastSeen := Now();
-          FActiveSessions[i] := aTemp;
-          Break;
-        end; {IF}
-      end; {FOR}
-    finally
-      TMonitor.Exit(FActiveSessions);
-    end; {TRY}
-  end; {IF}
+        FTCPClient.Connect;
+      end; {IF}
+    end; {CASE: nrNone}
+    nrClient: ; //todo not so sure here, heart beats are sent to hub
+    nrServer: ; //todo not so sure here, heart beats are sent to hub
+    nrHub: begin
+      if aMsg = 'VE_PROJ_WOLF' then begin
+        LogToUI('Client@' + aBinding.PeerIP + 'Looking for Hub, Responding...');
+        FUDPClient.Send(aBinding.PeerIP, FServerPort, 'VE_PROJ_WOLF');
+      end {IF}
+      else if aMsg.StartsWith('HEARTBEAT,') then begin
+        LogToUI('UDP_HEARTBEAT... updating sessions');
+        TMonitor.Enter(FActiveSessions);
+        try
+          for i := 0 to FActiveSessions.Count - 1 do begin
+            if FActiveSessions[i].HostIP = aBinding.PeerIP then begin
+              var aTemp := FActiveSessions[I];
+              aTemp.LastSeen := Now();
+              FActiveSessions[i] := aTemp;
+              Break;
+            end; {IF}
+          end; {FOR}
+        finally
+          TMonitor.Exit(FActiveSessions);
+        end; {TRY}
+      end;{ELSE IF}
+    end; {CASE: nrHub}
+  end;
+
 end;
 
 procedure TNetworkManager.RegisterWithHub(const aSession: TGameSession);
 begin
   if FTCPClient.Connected then begin
+    LogToUI('Registering with Hub');
     FTCPClient.IOHandler.WriteLn('REGISTER,' + aSession.ToNetworkString);
   end; {IF}
 end;
 
-procedure TNetworkManager.StartHosting(aPort: Integer);
+procedure TNetworkManager.StartHostingHub(aPort: Integer);
 begin
   try
+    LogToUI('Starting  TCP Server, Broadcasting...');
     FTCPServer.DefaultPort := aPort;
     FTCPServer.Active := True;
-    FRole := nrServer;
+    FRole := nrHub;
 
     FBroadcastTimer.Enabled := True;
   except

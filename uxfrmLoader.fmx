@@ -1,0 +1,38 @@
+object xfrmLoader: TxfrmLoader
+  Left = 0
+  Top = 0
+  BorderIcons = [biSystemMenu, biMinimize]
+  BorderStyle = Single
+  ClientHeight = 477
+  ClientWidth = 640
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop, iPhone, iPad]
+  OnShow = FormShow
+  DesignerMasterStyle = 0
+  object sldLayout: TScaledLayout
+    Align = Client
+    OriginalWidth = 640.000000000000000000
+    OriginalHeight = 477.000000000000000000
+    Size.Width = 640.000000000000000000
+    Size.Height = 477.000000000000000000
+    Size.PlatformDefault = False
+    object panViewPort: TPanel
+      Size.Width = 640.000000000000000000
+      Size.Height = 580.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 1
+    end
+    object btnExit: TButton
+      Position.X = 8.000000000000000000
+      Position.Y = 447.000000000000000000
+      Size.Width = 25.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 0
+      Text = '<'
+      TextSettings.Trimming = None
+      OnClick = btnExitClick
+    end
+  end
+end

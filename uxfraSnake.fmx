@@ -1,0 +1,5 @@
+object xfrmSnake: TxfrmSnake
+  Size.Width = 765.000000000000000000
+  Size.Height = 655.000000000000000000
+  Size.PlatformDefault = False
+end
