@@ -38,7 +38,7 @@ type
     procedure(aClient: TuTCPRemoteClient; const aMsg: String) of Object;
   TClientEvent = procedure(aClient: TuTCPRemoteClient) of Object;
 
-  TuTCPServer = class(TObject)
+  TuTCPServer = class
     private
       FListener: TSocket;
       FClients: TObjectList<TuTCPRemoteClient>;

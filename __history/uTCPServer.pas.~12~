@@ -6,44 +6,71 @@ uses
   System.Net.Socket,
   System.SysUtils,
   System.Classes,
-  System.Generics.Collections;
+  System.Generics.Collections,
+  uTCPRemoteClient;
 
 type
-  TOnClientMessage = procedure(const aClientIP: String; const aMsg: String) of Object;
+  TOnClientMessage =
+    procedure(aClient: TuTCPRemoteClient; const aMsg: String) of Object;
+  TClientEvent = procedure(aClient: TuTCPRemoteClient) of Object;
 
-  TuTCPServer = class
+  TuTCPServer = class(TObject)
     private
       FListener: TSocket;
-      FClients: TList<TSocket>;
+      FClients: TList<TuTCPRemoteClient>;
       FActive: Boolean;
       FOnMsg: TOnClientMessage;
+      FOnConnect: TClientEvent;
+      FOnDisconnect: TClientEvent;
 
-      procedure ListenLoop;
-      procedure ReadClientMessages(aClient: TSocket);
+      procedure Listen;
+      procedure ReadClientMessages(aClient: TuTCPRemoteClient);
     public
       constructor Create;
       destructor Destroy; override;
 
-//      procedure Start(aPort: Integer);
+      procedure Start(aPort: Integer);
       procedure Stop;
       procedure Broadcast(const aMsg: String);
       property OnMessage: TOnClientMessage read FOnMsg write FOnMsg;
+      property OnConnected: TClientEvent read FOnConnect write FOnConnect;
+      property OnDisconnected: TClientEvent
+        read FOnDisconnect write FOnDisconnect;
+
   end;
 implementation
 
 { TuTCPServer }
 
+///////////////////////////////////////////////////////////////////////////////
+//// Construction/Initalization
+///////////////////////////////////////////////////////////////////////////////
+
 constructor TuTCPServer.Create;
 begin
-  FClients := TList<TSocket>.Create;
+  FClients := TList<TuTCPRemoteClient>.Create;
   FActive := False;
 end;
 
-procedure TuTCPServer.ListenLoop;
+procedure TuTCPServer.Start(aPort: Integer);
+begin
+  FListener := TSocket.Create(TSocketType.TCP);
+  FListener.Bind(aPort);
+//  FListener.L;
+  FActive := True;
+
+  TThread.CreateAnonymousThread(Listen).Start;
+end;
+
+///////////////////////////////////////////////////////////////////////////////
+//// Other
+///////////////////////////////////////////////////////////////////////////////
+
+procedure TuTCPServer.Listen;
 begin
   while FActive do begin
     var aClient := FListener.Accept(500);
-    if aClient <> nil then begin
+    if Assigned(aClient) then begin
       TMonitor.Enter(FClients);
       try
         FClients.Add(aClient);
@@ -51,7 +78,7 @@ begin
         TMonitor.Exit(FClients);
       end;
       TThread.CreateAnonymousThread(procedure begin
-       ReadClientMessages(aClient);
+        ReadClientMessages(aClient);
       end).Start; {PROCEDURE}
     end; {IF}
   end; {WHILE}
@@ -74,7 +101,7 @@ begin
   end;
 end;
 
-procedure TuTCPServer.ReadClientMessages(aClient: TSocket);
+procedure TuTCPServer.ReadClientMessages(aClient: TuTCPRemoteClient);
 var
   aBuffer: TBytes;
   aLen: Integer;
@@ -93,12 +120,24 @@ begin
         var i := Pos(#10, aFinalMsg);
         var aLine := Copy(aFinalMsg, 1, i - 1).Trim;
         aFinalMsg := Copy(aFinalMsg, i + 1, MaxInt);
+
+        if Assigned(FOnMsg) then
+          TThread.Queue(nil, procedure begin
+            FOnMsg(aClient, aLine);
+          end);
       end; {WHILE}
     end; {IF}
   end; {WHILE}
-
+  TMonitor.Enter(FClients);
+  FClients.Remove(aClient);
+  TMonitor.Exit(FClients);
 end;
 
+///////////////////////////////////////////////////////////////////////////////
+//// Deconstruction
+///////////////////////////////////////////////////////////////////////////////
+
+//should be disconnect call i think no stop should logically make sense
 procedure TuTCPServer.Stop;
 begin
   FActive := False;

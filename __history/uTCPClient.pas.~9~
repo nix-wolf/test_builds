@@ -10,7 +10,7 @@ uses
   uReadThread;
 
 type
-  TOnDataReceived = procedure(const aIP, aData: String) of Object;
+  TOnDataReceived = procedure(const aData: String) of Object;
 
   TuTCPClient = class
     private

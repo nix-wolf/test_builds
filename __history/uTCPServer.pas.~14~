@@ -7,33 +7,9 @@ uses
   System.SysUtils,
   System.Classes,
   System.Generics.Collections,
-  uReadThread;
+  uTCPRemoteClient;
 
 type
-  TuTCPServer = class;
-
-  TOnDataReceived = procedure(const aIP, aData: String) of Object;
-
-  TuTCPRemoteClient = class
-    private
-      FOwner: TObject;
-      FSocket: TSocket;
-      FReadThread: TuReadThread;
-      FIP: String;
-      FOnData: TOnDataReceived;
-    public
-      constructor Create(aOwner: TObject; aSocket: TSocket);
-      destructor Destroy; override;
-
-      procedure Send(const aMsg: String);
-      procedure OnLine(const aIP, aMsg: String);
-      procedure Disconnect;
-
-      property IP: String read FIP;
-      property Socket: TSocket read FSocket;
-      property OnDataReceived: TOnDataReceived read FOnData write FOnData;
-  end;
-
   TOnClientMessage =
     procedure(aClient: TuTCPRemoteClient; const aMsg: String) of Object;
   TClientEvent = procedure(aClient: TuTCPRemoteClient) of Object;
@@ -48,12 +24,12 @@ type
       FOnDisconnect: TClientEvent;
 
       procedure Listen;
+    protected
+      procedure OnClientMessage(aClient: TuTCPRemoteClient; const aMsg: String);
+      procedure OnClientDisconnect(aClient: TuTCPRemoteClient);
     public
       constructor Create;
       destructor Destroy; override;
-
-      procedure OnClientMessage(aClient: TuTCPRemoteClient; const aMsg: String);
-      procedure OnClientDisconnect(aClient: TuTCPRemoteClient);
 
       procedure Start(aPort: Integer);
       procedure Stop;
@@ -163,65 +139,5 @@ begin
   Stop;
   FClients.Free;
 end;
-
-
-{ TuTCPRemoteClient }
-
-///////////////////////////////////////////////////////////////////////////////
-//// Construction/Initalization
-///////////////////////////////////////////////////////////////////////////////
-
-constructor TuTCPRemoteClient.Create(aOwner: TObject; aSocket: TSocket);
-begin
-  FOwner := aOwner;
-  FSocket := aSocket;
-
-  //not sure about this
-  try
-    FIP := FSocket.Endpoint.Address.Address;
-  except
-    FIP := '0.0.0.0';
-  end;
-
-  FReadThread := TuReadThread.Create(FSocket, OnLine, Disconnect);
-  FReadThread.Start;
-end;
-
-///////////////////////////////////////////////////////////////////////////////
-//// Other
-///////////////////////////////////////////////////////////////////////////////
-
-procedure TuTCPRemoteClient.Send(const aMsg: String);
-var
-  aBytes: TBytes;
-begin
-  if TSocketState.Connected in FSocket.State then begin
-    aBytes := TEncoding.UTF8.GetBytes(aMsg + #10);
-    FSocket.Send(aBytes, 0, Length(aBytes));
-  end; {IF}
-end;
-
-procedure TuTCPRemoteClient.OnLine(const aIP, aMsg: String);
-begin
-  if Assigned(FOwner) then
-    (FOwner as TuTCPServer).OnClientMessage(Self, aMsg);
-end;
-
-///////////////////////////////////////////////////////////////////////////////
-//// Deconstruction
-///////////////////////////////////////////////////////////////////////////////
-
-procedure TuTCPRemoteClient.Disconnect;
-begin
-  if Assigned(FOwner) then
-    TuTCPServer(FOwner).OnClientDisconnect(Self);
-end;
-
-destructor TuTCPRemoteClient.Destroy;
-begin
-  if Assigned(FSocket) then FSocket.Close;
-  inherited;
-end;
-
 
 end.

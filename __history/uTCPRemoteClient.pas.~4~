@@ -6,30 +6,28 @@ uses
   System.Net.Socket,
   System.Classes,
   System.SysUtils,
+  uTCPServer,
   uReadThread;
 
 type
-  TuTCPServer = class(TObject);
   TOnDataReceived = procedure(const aIP, aData: String) of Object;
 
   TuTCPRemoteClient = class
     private
-      FOwner: TObject;
+      FOwner: TuTCPServer;
       FSocket: TSocket;
       FReadThread: TuReadThread;
       FIP: String;
-      FOnData: TOnDataReceived;
     public
       constructor Create(aOwner: TObject; aSocket: TSocket);
       destructor Destroy; override;
 
       procedure Send(const aMsg: String);
-      procedure OnLine(const aIP, aMsg: String);
+      procedure Line(const aMsg: String);
       procedure Disconnect;
 
       property IP: String read FIP;
-      property Socket: TSocket read FSocket;
-      property OnDataReceived: TOnDataReceived read FOnData write FOnData;
+      property OnDataReceived: TOnDataReceived read FOnData write FOnData
   end;
 
 implementation
@@ -39,7 +37,6 @@ implementation
 ///////////////////////////////////////////////////////////////////////////////
 //// Construction/Initalization
 ///////////////////////////////////////////////////////////////////////////////
-uses uTCPServer;
 
 constructor TuTCPRemoteClient.Create(aOwner: TObject; aSocket: TSocket);
 begin
@@ -53,7 +50,7 @@ begin
     FIP := '0.0.0.0';
   end;
 
-  FReadThread := TuReadThread.Create(FSocket, OnLine, Disconnect);
+  FReadThread := TuReadThread.Create(FSocket, OnDataReceived, Disconnect);
   FReadThread.Start;
 end;
 
@@ -63,7 +60,7 @@ end;
 
 procedure TuTCPRemoteClient.Send(const aMsg: String);
 var
-  aBytes: TBytes;
+  aBytes: TBytes
 begin
   if TSocketState.Connected in FSocket.State then begin
     aBytes := TEncoding.UTF8.GetBytes(aMsg + #10);
@@ -71,10 +68,10 @@ begin
   end; {IF}
 end;
 
-procedure TuTCPRemoteClient.OnLine(const aIP, aMsg: String);
+procedure TuTCPRemoteClient.Line(const aMsg: String);
 begin
-  if Assigned(FOwner) then
-    TuTCPServer(FOwner).OnClientMessage(Self, aMsg);
+  if Assigned(FOwner.OnMessage) then
+    FOwner.OnMessage(Self, aMsg);
 end;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -83,8 +80,8 @@ end;
 
 procedure TuTCPRemoteClient.Disconnect;
 begin
-  if Assigned(FOwner) then
-    TuTCPServer(FOwner).OnClientDisconnect(Self);
+  if Assigned(FOwner.OnDisconnected) then
+    FOwner.OnDisconnected(Self);
 end;
 
 destructor TuTCPRemoteClient.Destroy;

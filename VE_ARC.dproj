@@ -168,6 +168,7 @@
         <DCCReference Include="uNetworkManager.pas"/>
         <DCCReference Include="uNetworkTypes.pas"/>
         <DCCReference Include="uUDPNode.pas"/>
+        <DCCReference Include="uReadThread.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
