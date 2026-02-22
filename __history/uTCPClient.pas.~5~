@@ -1,0 +1,108 @@
+unit uTCPClient;
+
+interface
+
+uses
+  System.Net.Socket,
+  System.SysUtils,
+  System.Classes,
+  System.Threading;
+
+type
+  TOnDataReceived = procedure(const aData: String) of Object;
+
+  TuTCPClient = class
+    private
+      FSocket: TSocket;
+      FReadThread: TThread;
+      FOnData: TOnDataReceived;
+      FConnected: Boolean;
+      procedure ExecuteRead;
+    public
+      constructor Create;
+      destructor Destroy; override;
+      procedure Connect(const aIP: String; aPort: Integer);
+      procedure Disconnect;
+      procedure Send(const aMsg: String);
+
+      property OnDataReceived: TOnDataReceived read FOnData write FOnData;
+      property Connected: Boolean read FConnected;
+  end;
+
+implementation
+
+{ TuTCPClient }
+
+constructor TuTCPClient.Create;
+begin
+  inherited;
+  FConnected := False;
+end;
+
+destructor TuTCPClient.Destroy;
+begin
+  Disconnect;
+  inherited;
+end;
+
+
+procedure TuTCPClient.Connect(const aIP: String; aPort: Integer);
+begin
+  FSocket := TSocket.Create(TSocketType.TCP);
+  FSocket.Connect('', aIP, '', aPort);
+  FConnected := True;
+
+  FReadThread := TThread.CreateAnonymousThread(ExecuteRead);
+  FReadThread.FreeOnTerminate := True;
+  FReadThread.Start;
+end;
+
+procedure TuTCPClient.Disconnect;
+begin
+  FConnected := False;
+  if Assigned(FSocket) then FSocket.Close;
+end;
+
+procedure TuTCPClient.Send(const aMsg: String);
+var
+   aBuffer: TBytes;
+begin
+  if not FConnected then Exit;
+  aBuffer := TEncoding.UTF8.GetBytes(aMsg + #10);
+  FSocket.Send(aBuffer, 0, Length(aBuffer));
+end;
+
+procedure TuTCPClient.ExecuteRead;
+var
+  aBuffer: TBytes;
+  aLen: Integer;
+  aString, AFinalMsg: String;
+  i: Integer;
+begin
+  SetLength(aBuffer, 4096);
+  AFinalMsg := '';
+
+  while FConnected do begin
+    try
+      aLen := FSocket.Receive(aBuffer, 0, Length(aBuffer));
+      if aLen <= 0 then Break;
+
+      aString := TEncoding.UTF8.GetString(aBuffer, 0, aLen);
+      AFinalMsg := AFinalMsg + aString;
+
+      while Pos(#10, AFinalMsg) > 0 do begin
+        i := Pos(#10, AFinalMsg);
+        var aLine := Copy(AFinalMsg, 1, i - 1).Trim;
+        AFinalMsg := Copy(AFinalMsg, i + 1, MaxInt);
+
+        if Assigned(FOnData) then
+          TThread.Queue(nil, procedure begin FOnData(aLine); end);
+      end; {WHILE}
+    except
+      Break;
+    end;
+  end;{WHILE}
+  FConnected := False;
+end;
+
+end.

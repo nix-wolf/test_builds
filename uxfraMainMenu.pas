@@ -23,7 +23,6 @@ type
   TxfraMainMenu = class(TFrame)
     btnMultiButton: TButton;
     btnSinglePlayer: TButton;
-    hedBanner: THeader;
     lLayout: TLayout;
     procedure btnSinglePlayerClick(Sender: TObject);
     procedure btnMultiButtonClick(Sender: TObject);

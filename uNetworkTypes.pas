@@ -19,7 +19,6 @@ type
 
 implementation
 
-
 { TGameSession }
 
 procedure TGameSession.FromNetworkString(AData: String);

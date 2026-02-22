@@ -1,0 +1,119 @@
+unit uUDPNode;
+
+interface
+
+uses
+  System.Net.Socket,
+  System.SysUtils,
+  System.Classes,
+  System.Threading;
+
+type
+  TOnUDPData = procedure(const aIP, aMsg: String) of Object;
+
+  TuUDPNode = class
+    private
+      FSocket: TSocket;
+      //todo: readthread should be its own unit, implmented twice
+      FReadThread: TThread;
+      FActive: Boolean;
+      FOnData: TOnUDPData;
+    public
+      constructor Create;
+      procedure Listen(const aPort: Integer);
+      procedure Broadcast(const aMsg: String; const aPort: Integer);
+      procedure Send(const aMsg, aIP: String; const aPort: Integer);
+
+    private
+      procedure ExecuteRead;
+
+    public
+      procedure Stop;
+      destructor Destroy; override;
+
+      property OnDataRecieved: TOnUDPData read FOnData write FOnData;
+
+  end;
+
+implementation
+
+{ TuUDPNode }
+
+constructor TuUDPNode.Create;
+begin
+  inherited;
+  FActive := False;
+end;
+
+procedure TuUDPNode.Listen(const aPort: Integer);
+begin
+  if FActive then Exit;
+  FSocket := TSocket.Create(TSocketType.UDP);
+  //binding to everything for the port being used
+  FSocket.Bind(TNetEndpoint.Create(TIPAddress.Create('0.0.0.0'), aPort));
+  FActive := True;
+
+  FReadThread := TThread.CreateAnonymousThread(ExecuteRead);
+  FReadThread.FreeOnTerminate := True;
+  FReadThread.Start;
+end;
+
+procedure TuUDPNode.Broadcast(const aMsg: String; const aPort: Integer);
+begin
+  Send(aMsg, '255.255.255.255', aPort);
+end;
+
+procedure TuUDPNode.Send(const aMsg, aIP: String; const aPort: Integer);
+var
+  aBytes: TBytes;
+  aSock: TSocket;
+  aEP: TNetEndpoint;
+begin
+  aBytes := TEncoding.UTF8.GetBytes(aMsg);
+  aSock := TSocket.Create(TSocketType.UDP);
+  try
+    aEP := TNetEndpoint.Create(TIPAddress.Create(aIP), aPort);
+    aSock.SendTo(aBytes, Length(aBytes), aEp);
+  finally
+    aSock.Free;
+  end;
+end;
+
+procedure TuUDPNode.ExecuteRead;
+var
+  aBuffer: TBytes;
+  aLen: Integer;
+  aRemoteEndpoint: TNetEndPoint;
+begin
+  SetLength(aBuffer, 2048);
+  while FActive do begin
+    try
+      if FSocket.ReceiveLength > 0 then begin
+        aLen := FSocket.ReceiveFrom(aBuffer, aRemoteEndpoint);
+        if aLen > 0 then begin
+          var aMsg := TEncoding.UTF8.GetString(aBuffer, 0, aLen);
+          var aIP := aRemoteEndpoint.Address.Address;
+
+          if Assigned(FOnData) then
+            TThread.Queue(nil, procedure begin FOnData(aIP, aMsg); end);
+        end; {IF}
+      end; {IF}
+    except
+      Break;
+    end;
+  end;{WHILE}
+end;
+
+procedure TuUDPNode.Stop;
+begin
+  FActive := False;
+  if Assigned(FSocket) then FSocket.Close;
+end;
+
+destructor TuUDPNode.Destroy;
+begin
+  Stop;
+  inherited;
+end;
+
+end.

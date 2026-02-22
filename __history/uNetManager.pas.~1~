@@ -1,0 +1,16 @@
+unit uNetManager;
+
+interface
+
+uses
+  System.Generics.Collections,
+  System.SysUtils,
+  System.Classes,
+  System.Net.Socket,
+  System.DateUtils,
+  Vcl.ExtCtrls,
+  uNetworkTypes;
+
+implementation
+
+end.

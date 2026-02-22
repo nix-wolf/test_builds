@@ -13,8 +13,8 @@ object xfraMainMenu: TxfraMainMenu
     Size.PlatformDefault = False
     TabOrder = 0
     object btnMultiButton: TButton
-      Position.X = 128.000000000000000000
-      Position.Y = 272.000000000000000000
+      Position.X = 136.000000000000000000
+      Position.Y = 216.000000000000000000
       Size.Width = 321.000000000000000000
       Size.Height = 22.000000000000000000
       Size.PlatformDefault = False
@@ -24,8 +24,8 @@ object xfraMainMenu: TxfraMainMenu
       OnClick = btnMultiButtonClick
     end
     object btnSinglePlayer: TButton
-      Position.X = 128.000000000000000000
-      Position.Y = 242.000000000000000000
+      Position.X = 136.000000000000000000
+      Position.Y = 186.000000000000000000
       Size.Width = 321.000000000000000000
       Size.Height = 22.000000000000000000
       Size.PlatformDefault = False
@@ -33,15 +33,6 @@ object xfraMainMenu: TxfraMainMenu
       Text = 'Single Player'
       TextSettings.Trimming = None
       OnClick = btnSinglePlayerClick
-    end
-    object hedBanner: THeader
-      Sides = [Top, Left, Bottom, Right]
-      Position.X = 128.000000000000000000
-      Position.Y = 184.000000000000000000
-      Size.Width = 321.000000000000000000
-      Size.Height = 50.000000000000000000
-      Size.PlatformDefault = False
-      TabOrder = 2
     end
   end
 end

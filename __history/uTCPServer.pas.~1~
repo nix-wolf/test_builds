@@ -1,0 +1,68 @@
+unit uTCPServer;
+
+interface
+
+uses
+  System.Net.Socket,
+  System.SysUtils,
+  System.Classes,
+  System.Generics.Collections;
+
+type
+  TOnClientMessage = procedure(const aClientIP: String; const aMsg: String) of Object;
+
+  TuTCPServer = class(TObject)
+    private
+      FListener: TSocket;
+      FClients: TList<TSocket>;
+      FActive: Boolean;
+      FOnMsg: TOnClientMessage;
+
+      procedure Listen;
+      procedure ReadClientMessages(aClient: TSocket);
+    public
+      constuctor Create;
+      dectructor Destroy; override;
+      procedure Start(aPort: Interger);
+      procedure Stop;
+      procedure Broadcast(const aMsg: String);
+      property OnMessage: TOnClientMessage read FOnMsg write FOnMsg;
+  end;
+implementation
+
+{ TuTCPServer }
+
+constructor TuTCPServer.Create;
+begin
+  inherited;
+  FClients := TList<TSocket>.Create;
+  FActive := False;
+end;
+
+destructor TuTCPServer.Destroy;
+begin
+  Stop;
+  FClients.Free;
+end;
+
+procedure TuTCPServer.Broadcast(const aMsg: String);
+begin
+
+end;
+
+procedure TuTCPServer.Listen;
+begin
+
+end;
+
+procedure TuTCPServer.ReadClientMessages(aClient: TSocket);
+begin
+
+end;
+
+procedure TuTCPServer.Stop;
+begin
+
+end;
+
+end.

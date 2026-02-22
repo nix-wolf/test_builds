@@ -8,6 +8,7 @@ uses
   System.Classes,
   System.DateUtils,
   IdGlobal,
+  IdStack,
   IdTCPClient,
   IdTCPServer,
   IdUDPClient,
@@ -20,48 +21,96 @@ uses
 type
   TNetworkRole = (nrNone, nrClient, nrServer, nrHub);
 
-  TLogEvent = procedure(const aMsg: String) of Object;
+  TUIEvent = procedure(const aMsg: String) of Object;
+  TRoleEvent = procedure(const aRole: TNetworkRole) of Object;
+
+  TReadThread = class(TThread)
+  private
+    FManager: TObject;
+  protected
+    procedure Execute; override;
+  public
+    constructor Create(aManager: TObject);
+  end;
+
 
   TNetworkManager = class(TObject)
   private
+    FUDPClient: TIdUDPClient;
     FUDPListener: TIdUDPServer;
     FTCPClient: TIdTCPClient;
     FTCPServer: TIdTCPServer;
-    FRole: TNetworkRole;
     FBroadcastTimer: TTimer;
-    FUDPClient: TIdUDPClient;
-    FServerPort: Integer;
+    FReadThread: TReadThread;
+
     FActiveSessions: TList<TGameSession>;
+    FRole: TNetworkRole;
+
+    FServerPort: Integer;
+    FDiscoveryAttempts: Integer;
     FHubIP: String;
     FGameName: String;
-    FOnLog: TLogEvent;
-    FDiscoveryAttempts: Integer;
+
+    FOnLog: TUIEvent;
+    FOnRoleChange: TRoleEvent;
 
     procedure OnBroadcastTimer(Sender: TObject);
-    procedure OnUDPRead(aThread: TIdUDPListenerThread; const aData: TIdBytes; aBinding: TIdSocketHandle);
+    procedure OnUDPRead(aThread: TIdUDPListenerThread; const aData: TIdBytes;
+      aBinding: TIdSocketHandle);
     procedure OnHubExecute(aContext: TIdContext);
     procedure RegisterWithHub(const aSession: TGameSession);
     procedure HandleRegistration(const aData: String; aContext: TIdContext);
     procedure OnCleanupTimer(Sender: TObject);
     procedure LogToUI(const aMsg: String);
+    procedure UpdateRoleToUI;
+
+    procedure OnHubConnect(aContext: TidContext);
+    procedure OnHubDisconnect(aContext: TidContext);
+    procedure onClientConnected(Sender: TObject);
+    procedure onClientDisconnected(Sender: TObject);
+
   public
     constructor Create;
     destructor Destroy; override;
 
     function ConnectToHub: Boolean;
     function FetchRemoteConnections: TArray<TGameSession>;
-    function DiscoverAndJoin(APort: Integer): Boolean;
-    procedure StartHostingHub(APort: Integer);
 
-    property Role: TNetworkRole read FRole;
+    procedure StartHostingHub(APort: Integer);
+    procedure SendChatMessage(const  aUser, aMsg: String);
+    procedure BroadcastToClients(const aMsg: String);
+    procedure HandleIncomingTCP(const aMsg: String);
+
     property HubIP: String Read FHubIP write FHubIP;
     property GameName: String Read FGameName write FGameName;
-    property OnLog: TLogEvent read FOnLog write FOnLog;
-
+    property OnLog: TUIEvent read FOnLog write FOnLog;
+    property OnRoleChange: TRoleEvent read FOnRoleChange write FOnRoleChange;
   end;
 implementation
 
 { TNetworkManager }
+
+procedure TNetworkManager.BroadcastToClients(const aMsg: String);
+  var
+    aList: TList;
+    i: Integer;
+    aContext: TIdContext;
+begin
+  aList := FTCPServer.Contexts.LockList;
+  try
+    for i := 0 to aList.Count - 1 do begin
+      aContext := TIdContext(aList[i]);
+      try
+        aContext.Connection.IOHandler.WriteLn(aMsg);
+      except
+        on E: Exception do ;
+      end;
+    end; {FOR}
+  finally
+    FTCPServer.Contexts.UnlockList;
+  end;
+
+end;
 
 function TNetworkManager.ConnectToHub: Boolean;
 begin
@@ -76,7 +125,7 @@ begin
       FTCPClient.Connect;
     Result := True;
   except
-    on E: Exception do
+    on E: Exception do ;
       //todo handle failure
   end; {TRY}
 end;
@@ -85,21 +134,28 @@ constructor TNetworkManager.Create;
 begin
   inherited Create;
   FRole := nrNone;
+  FActiveSessions := TList<TGameSession>.Create;
   FServerPort := 6000;
   FUDPListener := TIdUDPServer.Create(nil);
+  FUDPListener.DefaultPort := FServerPort;
   FUDPListener.OnUDPRead := OnUDPRead;
   FUDPListener.ThreadedEvent := True;
-
-  FTCPClient := TIdTCPClient.Create(nil);
-  FTCPServer := TIdTCPServer.Create(nil);
+  FUDPListener.Active := True;
 
   FUDPClient := TIdUDPClient.Create(nil);
+  FTCPClient := TIdTCPClient.Create(nil);
+  FTCPServer := TIdTCPServer.Create(nil);
 
   FBroadcastTimer := TTimer.Create(nil);
   FBroadcastTimer.Interval := 2000;
   FBroadcastTimer.OnTimer := OnBroadcastTimer;
 
   FTCPServer.OnExecute := OnHubExecute;
+
+  FTCPServer.OnConnect := OnHubConnect;
+  FTCPServer.OnDisconnect := OnHubDisconnect;
+  FTCPClient.OnConnected := OnClientConnected;
+  FTCPClient.OnDisconnected := OnClientDisconnected;
 end;
 
 destructor TNetworkManager.Destroy;
@@ -109,43 +165,10 @@ begin
   FTCPServer.Free;
   FUDPClient.Free;
   FBroadcastTimer.Free;
+
+  FActiveSessions.Free;
+  if Assigned(FReadThread) then FReadThread.Free;
   inherited Destroy;
-end;
-
-function TNetworkManager.DiscoverAndJoin(aPort: Integer): Boolean;
-  var
-    aTimeoutCounter: Integer;
-begin
-  Result := False;
-  FRole := nrNone;
-
-  FUDPListener.DefaultPort := aPort;
-  FUDPListener.Active := True;
-
-  aTimeoutCounter := 0;
-  while (FRole = nrNone) and (aTimeoutCounter < 30) do begin
-    Sleep(100);
-    Inc(aTimeoutCounter);
-    CheckSynchronize(10);
-  end; {WHILE}
-
-  if FRole = nrClient then begin
-    LogToUI('Hub Found... Connecting');
-    FTCPClient.Port := aPort;
-    try
-      FTCPClient.Connect;
-      Result := True;
-    except
-      FRole := nrNone;
-    end; {TRY}
-  end; {IF}
-
-  if FRole = nrNone then begin
-    LogToUI('No Hub Found Starting a Hub...');
-    FUDPListener.Active := False;
-//    StartHosting(APort);
-    Result := True;
-  end; {IF}
 end;
 
 function TNetworkManager.FetchRemoteConnections: TArray<TGameSession>;
@@ -165,6 +188,25 @@ begin
 
   for i := 0 to High(aGamesData) do
     Result[i].FromNetworkString(aGamesData[i]);
+end;
+
+procedure TNetworkManager.HandleIncomingTCP(const aMsg: String);
+var
+  aCommand, aFinalMsg: String;
+  aCommaPos: Integer;
+begin
+  aCommaPos := Pos(',', aMsg);
+
+  if aCommaPos > 0 then begin
+    aCommand := Copy(aMsg, 1, aCommaPos - 2);
+    aFinalMsg := Copy(aMsg, aCommaPos + 1, MaxInt);
+
+    if aCommand = 'CHAT' then
+      LogToUI(aFinalMsg);
+
+  end{IF}
+  else
+    LogToUI('MalFormed Command:: ' + aMsg);
 end;
 
 procedure TNetworkManager.HandleRegistration(const aData: String;
@@ -212,7 +254,7 @@ procedure TNetworkManager.OnBroadcastTimer(Sender: TObject);
 begin
   if (FRole = nrClient) or (FRole = nrServer) then begin
     if FHubIP <> '' then begin
-      LogToUI('UDP HEARTBEAT...');
+//      LogToUI('UDP HEARTBEAT...');
       FUDPClient.Send(FHubIP, FServerPort, 'HEARTBEAT,' + FGameName);
     end; {IF}
   end; {IF}
@@ -220,10 +262,12 @@ begin
   if FRole = nrNone then begin
     if FDiscoveryAttempts >= 3 then begin
       FRole := nrHub;
+      UpdateRoleToUI;
       StartHostingHub(FServerPort);
       FBroadcastTimer.Enabled := False;
     end {IF}
     else begin
+      UpdateRoleToUI;
       FUDPClient.BroadcastEnabled := True;
       LogToUI('Checking for Active Hub');
       FUDPClient.Send('255.255.255.255', FServerPort, 'VE_PROJ_WOLF');
@@ -250,6 +294,43 @@ begin
   end;
 end;
 
+procedure TNetworkManager.onClientConnected(Sender: TObject);
+begin
+  FRole := nrClient;
+
+  TThread.Queue(nil, procedure
+  begin
+    LogToUI('Client: Successfully handshaked with Hub.');
+    UpdateRoleToUI;
+  end);
+
+  if not Assigned(FReadThread) then
+    FReadThread := TReadThread.Create(Self);
+end;
+
+procedure TNetworkManager.onClientDisconnected(Sender: TObject);
+begin
+  FRole := nrNone;
+  TThread.Queue(nil, procedure begin
+    LogToUI('Lost connection to Hub. Reverting to discovery mode...');
+    FBroadcastTimer.Enabled := True;
+  end); {PROCEDURE}
+end;
+
+procedure TNetworkManager.OnHubConnect(aContext: TidContext);
+begin
+  TThread.Queue(nil, procedure begin
+    LogToUI('Hub: New TCP client connected from ' + AContext.Binding.PeerIP);
+  end); {PROCEDURE}
+
+  AContext.Connection.IOHandler.WriteLn('CHAT, Hub: Connection Established. Welcome to the Wolf Network.');
+end;
+
+procedure TNetworkManager.OnHubDisconnect(aContext: TidContext);
+begin
+//remove any associations to the ip and user?
+end;
+
 procedure TNetworkManager.OnHubExecute(aContext: TIdContext);
   var
     aRequest: String;
@@ -269,7 +350,11 @@ begin
   else if aRequest.StartsWith('REGISTER,') then begin
     LogToUI('Register Request.');
     HandleRegistration(aRequest, aContext);
-  end; {ELSE}
+  end {ELSE IF}
+  else if aRequest.StartsWith('CHAT,') then begin
+
+  end; {ELSE IF}
+
 
 end;
 
@@ -278,30 +363,44 @@ procedure TNetworkManager.OnUDPRead(aThread: TIdUDPListenerThread;
   var
     aMsg: String;
     i: Integer;
+    aLocalIP: String;
 begin
-  aMsg := BytesToString(aData);
+  aLocalIP := GStack.LocalAddress;
+  if(aBinding.PeerIP = '127.0.0.1') or (aBinding.PeerIP = aLocalIP) then
+    Exit;
 
+  aMsg := BytesToString(aData);
+//  LogToUI('Recieved Message::: ' + aMsg);
   case FRole of
     nrNone: begin
       if aMsg = 'VE_PROJ_WOLF' then begin
         LogToUI('Received Response From Hub, Connecting to TCP Lobby');
         FHubIP := aBinding.PeerIP;
         FTCPClient.Host := FHubIP;
-        FTCPClient.Port := FServerPort;
-        FRole := nrClient;
+        FTCPClient.Port := FServerPort + 1;
+        FTCPClient.ConnectTimeout := 1000;
 
-        FTCPClient.Connect;
+        try
+          LogToUI('Connecting...');
+          FTCPClient.Connect;
+        except
+          on E:Exception do begin
+            LogToUI('TCP Connection Failed:' + E.Message);
+            FRole := nrNone;
+            UpdateRoleToUI;
+          end;{EXCEPTION}
+        end;
       end; {IF}
     end; {CASE: nrNone}
     nrClient: ; //todo not so sure here, heart beats are sent to hub
     nrServer: ; //todo not so sure here, heart beats are sent to hub
     nrHub: begin
       if aMsg = 'VE_PROJ_WOLF' then begin
-        LogToUI('Client@' + aBinding.PeerIP + 'Looking for Hub, Responding...');
-        FUDPClient.Send(aBinding.PeerIP, FServerPort, 'VE_PROJ_WOLF');
+        LogToUI('Client@' + aBinding.PeerIP + ' Looking for Hub, Responding...');
+        FUDPClient.Send('255.255.255.255', FServerPort, 'VE_PROJ_WOLF');
       end {IF}
       else if aMsg.StartsWith('HEARTBEAT,') then begin
-        LogToUI('UDP_HEARTBEAT... updating sessions');
+//        LogToUI('UDP_HEARTBEAT... updating sessions');
         TMonitor.Enter(FActiveSessions);
         try
           for i := 0 to FActiveSessions.Count - 1 do begin
@@ -329,19 +428,81 @@ begin
   end; {IF}
 end;
 
+procedure TNetworkManager.SendChatMessage(const  aUser, aMsg: String);
+  var
+    aFinalMsg: String;
+begin
+  aFinalMsg := 'CHAT, ' + aUser + ', ' + aMsg;
+
+  if FRole = nrClient then begin
+    if FTCPClient.Connected then
+      LogToUI('Attemping to send a message');
+      FTCPClient.IOHandler.WriteLn(aFinalMsg);
+  end {IF}
+  else if FRole = nrHub then begin
+    LogToUI(aUser + ': ' + aMsg);
+    BroadcastToClients(AFinalMsg);
+  end; {ELSE}
+end;
+
 procedure TNetworkManager.StartHostingHub(aPort: Integer);
 begin
   try
     LogToUI('Starting  TCP Server, Broadcasting...');
-    FTCPServer.DefaultPort := aPort;
+    FTCPServer.DefaultPort := aPort + 1;
     FTCPServer.Active := True;
     FRole := nrHub;
-
-    FBroadcastTimer.Enabled := True;
+    UpdateRoleToUI;
   except
     on E: Exception do
       raise Exception.Create('Failed To Start Host: ' + E.Message);
   end;
+end;
+
+procedure TNetworkManager.UpdateRoleToUI;
+begin
+  if Assigned(FOnRoleChange) then begin
+    TThread.Queue(nil, procedure begin
+      FOnRoleChange(FRole);
+    end);{PROCEDURE}
+  end; {IF}
+end;
+
+{ TReadThread }
+
+constructor TReadThread.Create(aManager: TObject);
+begin
+  inherited Create(False);
+  FManager := aManager;
+//  FreeOnTerminate := True;
+end;
+
+procedure TReadThread.Execute;
+var
+  aMsg: String;
+  aNetMgr: TNetworkManager;
+  aByteCount: Integer;
+begin
+  aNetMgr := TNetworkManager(FManager);
+
+  TThread.Queue(nil, procedure begin
+    aNetMgr.LogToUI('DEBUG: ReadingThread is now active and listening...');
+  end); {PROCEDURE}
+  while(not Terminated) and (aNetMgr.FTCPClient.Connected) do begin
+    try
+      aMsg := aNetMgr.FTCPClient.IOHandler.ReadLn;
+
+      if aMsg <> '' then begin
+        TThread.Queue(nil, procedure begin
+          aNetMgr.HandleIncomingTCP(aMsg);
+        end); {PROCEDURE}
+      end; {IF}
+    except
+      on E: Exception do begin
+        Terminate;
+      end;
+    end;
+  end; {WHILE}
 end;
 
 end.
