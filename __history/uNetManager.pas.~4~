@@ -15,7 +15,9 @@ uses
 type
   TNetworkRole = (nrNone, nrClient, nrServer, nrHub);
 
-  TUIEvent<T> = procedure(const aT: T) of Object;
+  TUIEvent = procedure(const aMsg: String) of Object;
+  TRoleEvent = procedure(const aRole: TNetworkRole) of Object;
+  TUiEvent<T> = procedure(const aT: T) of Object;
 
   TNetManager = class
     private
@@ -34,8 +36,8 @@ type
       FHubIP: String;
       FGameName: String;
 
-      FOnLog: TUIEvent<String>;
-      FOnRoleChange: TUIEvent<TNetworkRole>;
+      FOnLog: TUiEvent;
+      FOnRoleChange: TUiEvent;
 
       //timer functions
       procedure OnBroadcastTimer(Sender: TObject);
@@ -58,7 +60,7 @@ type
 
       procedure LogToUI(const aMsg: String);
       procedure UpdateRoleToUI;
-      procedure UIEventCallback<T>(aEvent: TUiEvent<T>; aT: T);
+      procedure SafeUI<T>(AEvent: TUiEvent<T>; AValue: T);
     public
       constructor Create;
       destructor Destroy; override;
@@ -70,8 +72,8 @@ type
       property UDP: TuUDPNode read FUDP;
       property TCPClient: TuTCPClient read FTCPClient;
       property TCPServer: TuTCPServer read FTCPServer;
-      property OnLog: TUIEvent<String> read FOnLog write FOnLog;
-      property OnRoleChange: TUIEvent<TNetworkRole> read FOnRoleChange write FOnRoleChange;
+      property OnLog: TUiEvent read FOnLog write FOnLog;
+      property OnRoleChange: TUiEvent read FOnRoleChange write FOnRoleChange;
   end;
 
 var
@@ -111,23 +113,27 @@ begin
 end;
 
 
-procedure TNetManager.UIEventCallBack<T>(aEvent: TUiEvent<T>; aT: T);
+procedure TNetManager.SafeUI<T>(AEvent: TUiEvent<T>; AValue: T);
 begin
-  if Assigned(aEvent) then begin
-    TThread.Queue(nil, procedure begin
-      aEvent(aT);
-    end);{PROCEDURE}
-  end; {IF}
+
 end;
 
 procedure TNetManager.LogToUI(const aMsg: String);
 begin
-  UIEventCallback<String>(FOnLog, aMsg);
+//  if Assigned(FOnLog) then begin
+//    TThread.Queue(nil, procedure begin
+//      FOnLog(aMsg);
+//    end);{PROCEDURE}
+//  end; {IF}
 end;
 
 procedure TNetManager.UpdateRoleToUI;
 begin
-  UIEventCallback<TNetworkRole>(FOnRoleChange, FRole);
+//  if Assigned(FOnRoleChange) then begin
+//    TThread.Queue(nil, procedure begin
+//      FOnRoleChange<TNetworkRole>(FRole);
+//    end);{PROCEDURE}
+//  end; {IF}
 end;
 
 ///////////////////////////////////////////////////////////////////////////////
