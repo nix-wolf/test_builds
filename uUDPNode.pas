@@ -24,8 +24,6 @@ type
       procedure Broadcast(const aMsg: String; const aPort: Integer);
       procedure Send(const aMsg, aIP: String; const aPort: Integer);
 
-      procedure Stop;
-      procedure Line(const aMsg: String);
       procedure Disconnect;
       destructor Destroy; override;
 
@@ -55,7 +53,7 @@ begin
   FSocket.Bind(TNetEndpoint.Create(TIPAddress.Create('0.0.0.0'), aPort));
   FActive := True;
 
-  FReadThread := TuReadThread.Create(FSocket, Line, Disconnect);
+  FReadThread := TuReadThread.Create(FSocket, OnDataRecieved, Stop);
   FReadThread.Start;
 end;
 
@@ -84,30 +82,19 @@ begin
   end;
 end;
 
-procedure TuUDPNode.Line(const aMsg: String);
-begin
-
-end;
-
 ///////////////////////////////////////////////////////////////////////////////
 //// Deconstruction
 ///////////////////////////////////////////////////////////////////////////////
 
-procedure TuUDPNode.Stop;
+procedure TuUDPNode.Disconnect;
 begin
   FActive := False;
   if Assigned(FSocket) then FSocket.Close;
 end;
 
-procedure TuUDPNode.Disconnect;
-begin
-  if Assigned(FSocket) then FSocket.Close;
-
-end;
-
 destructor TuUDPNode.Destroy;
 begin
-  Stop;
+  Disconnect;
   inherited;
 end;
 
