@@ -3,28 +3,70 @@ unit uNetManager;
 interface
 
 uses
+  System.Generics.Collections,
   System.SysUtils,
   System.Classes,
+  Vcl.ExtCtrls,
+  uNetworkTypes,
   uTCPClient,
   uTCPServer,
   uUDPNode;
 
 type
+  TNetworkRole = (nrNone, nrClient, nrServer, nrHub);
+
+  TUIEvent = procedure(const aMsg: String) of Object;
+  TRoleEvent = procedure(const aRole: TNetworkRole) of Object;
+
   TNetManager = class
     private
       FUDP: TuUDPNode;
       FTCPClient: TuTCPClient;
       FTCPServer: TuTCPServer;
+      FBroadCastTimer: TTimer;
 
-      procedure OnTCPMessage();
-      procedure OnUDPMessage();
+      FActiveSessions: TList<TGameSession>;
+      FRole: TNetworkRole;
+
+      //should be pulled for ini file?
+      FServerPort: Integer;
+      //can this be moved into discovery of just doing the discovery in a loop
+      FDiscoverAttempts: Integer;
+      FHubIP: String;
+      FGameName: String;
+
+      FOnLog: TUIEvent;
+      FOnRoleChange: TRoleEvent;
+
+      //timer functions
+      procedure OnBroadcastTimer(Sender: TObject);
+      procedure OnCleanUpTimer(Sender: TObject);
+
+      //client functions
+      procedure CreateSession(const aSession: TGameSession);
+      procedure OnConnect(Sender: TObject);
+      procedure OnDisconnect(Sender: TObject);
+      procedure OnTCPMessage(aSender: TuTCPClient; const aMsg: String);
+      procedure OnUDPMessage(const aIP, aMsg: String);
+      //server functions
+      procedure HandleCreateSession(const aMsg: String; aClient: TuTCPClient);
+      procedure OnConnected(aClient: TuTCPClient);
+      procedure OnDisconnected(aClient: TuTCPClient);
+      procedure OnServerTCPMessage(aSender: TuTCPClient; const aMsg: String);
+      procedure OnServerUDPMessage(const aIP, aMsg: String);
+
+
+
+      procedure LogToUI(const aMsg: String);
+      procedure UpdateRoleToUI;
+
     public
       constructor Create;
       destructor Destroy; override;
 
       procedure InitUDP(const aPort: Integer);
       procedure StartHub(const aPort: Integer);
-      procedure ConnectToHub(const aIP: String; const aPort: Integer);
+      procedure Connect(const aIP: String; const aPort: Integer);
 
       property UDP: TuUDPNode read FUDP;
       property TCPClient: TuTCPClient read FTCPClient;
@@ -36,8 +78,140 @@ var
 
 implementation
 
+{ TNetManager }
+
+///////////////////////////////////////////////////////////////////////////////
+//// Construction/Initalization
+///////////////////////////////////////////////////////////////////////////////
+
+constructor TNetManager.Create;
+begin
+  FUDP := TuUDPNode.Create;
+  FUDP.OnDataRecieved := OnUDPMessage;
+end;
+
+///////////////////////////////////////////////////////////////////////////////
+//// Other
+///////////////////////////////////////////////////////////////////////////////
+
+procedure TNetManager.OnBroadcastTimer(Sender: TObject);
+begin
+
+end;
+
+procedure TNetManager.OnCleanUpTimer(Sender: TObject);
+begin
+
+end;
+
+procedure TNetManager.InitUDP(const aPort: Integer);
+begin
+  FUDP.Listen(aPort);
+end;
+
+procedure TNetManager.LogToUI(const aMsg: String);
+begin
+
+end;
+
+procedure TNetManager.UpdateRoleToUI;
+begin
+
+end;
+
+///////////////////////////////////////////////////////////////////////////////
+//// Client Functions
+///////////////////////////////////////////////////////////////////////////////
+
+procedure TNetManager.Connect(const aIP: String; const aPort: Integer);
+begin
+  if not Assigned(FTCPClient) then
+    FTCPClient := TuTCPClient.Create;
+
+  FTCPClient.Connect(aIP, aPort);
+end;
+
+procedure TNetManager.OnConnect(Sender: TObject);
+begin
+
+end;
 
 
+procedure TNetManager.OnDisconnect(Sender: TObject);
+begin
+
+end;
+
+procedure TNetManager.OnTCPMessage(aSender: TuTCPClient; const aMsg: String);
+begin
+
+end;
+
+procedure TNetManager.OnUDPMessage(const aIP, aMsg: String);
+begin
+
+end;
+
+procedure TNetManager.CreateSession(const aSession: TGameSession);
+begin
+
+end;
+
+///////////////////////////////////////////////////////////////////////////////
+//// Server Functions
+///////////////////////////////////////////////////////////////////////////////
+
+
+procedure TNetManager.StartHub(const aPort: Integer);
+begin
+  if not Assigned(FTCPServer) then begin
+    FTCPServer := TuTCPServer.Create;
+    FTCPServer.Start(aPort);
+  end;{IF}
+end;
+
+
+procedure TNetManager.OnConnected(aClient: TuTCPClient);
+begin
+
+end;
+
+procedure TNetManager.OnDisconnected(aClient: TuTCPClient);
+begin
+
+end;
+
+procedure TNetManager.OnServerTCPMessage(aSender: TuTCPClient;
+  const aMsg: String);
+begin
+
+end;
+
+procedure TNetManager.OnServerUDPMessage(const aIP, aMsg: String);
+begin
+
+end;
+
+///////////////////////////////////////////////////////////////////////////////
+//// Deconstruction
+///////////////////////////////////////////////////////////////////////////////
+
+destructor TNetManager.Destroy;
+begin
+  if Assigned(FUDP) then FUDP.Free;
+  if Assigned(FTCPClient) then FTCPClient.Free;
+  if Assigned(FTCPServer) then FTCPServer.Free;
+
+  inherited;
+end;
+
+procedure TNetManager.HandleCreateSession(const aMsg: String;
+  aClient: TuTCPClient);
+begin
+
+end;
+
+////Singleton Logic
 initialization
   NetMgr := TNetManager.Create;
 

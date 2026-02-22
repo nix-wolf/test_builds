@@ -34,15 +34,18 @@ implementation
 
 { TuTCPClient }
 
-///////////////////////////////////////////////////////////////////////////////
-//// Construction/Initalization
-///////////////////////////////////////////////////////////////////////////////
-
 constructor TuTCPClient.Create;
 begin
   inherited;
   FConnected := False;
 end;
+
+destructor TuTCPClient.Destroy;
+begin
+  Disconnect;
+  inherited;
+end;
+
 
 procedure TuTCPClient.Connect(const aIP: String; aPort: Integer);
 begin
@@ -55,9 +58,11 @@ begin
   FReadThread.Start;
 end;
 
-///////////////////////////////////////////////////////////////////////////////
-//// Other
-///////////////////////////////////////////////////////////////////////////////
+procedure TuTCPClient.Disconnect;
+begin
+  FConnected := False;
+  if Assigned(FSocket) then FSocket.Close;
+end;
 
 procedure TuTCPClient.Send(const aMsg: String);
 var
@@ -99,22 +104,6 @@ begin
     end;
   end;{WHILE}
   FConnected := False;
-end;
-
-///////////////////////////////////////////////////////////////////////////////
-//// Deconstruction
-///////////////////////////////////////////////////////////////////////////////
-
-procedure TuTCPClient.Disconnect;
-begin
-  FConnected := False;
-  if Assigned(FSocket) then FSocket.Close;
-end;
-
-destructor TuTCPClient.Destroy;
-begin
-  Disconnect;
-  inherited;
 end;
 
 end.

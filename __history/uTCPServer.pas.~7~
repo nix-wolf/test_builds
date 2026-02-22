@@ -33,29 +33,11 @@ implementation
 
 { TuTCPServer }
 
-///////////////////////////////////////////////////////////////////////////////
-//// Construction/Initalization
-///////////////////////////////////////////////////////////////////////////////
-
 constructor TuTCPServer.Create;
 begin
   FClients := TList<TSocket>.Create;
   FActive := False;
 end;
-
-procedure TuTCPServer.Start(aPort: Integer);
-begin
-  FListener := TSocket.Create(TSocketType.TCP);
-  FListener.Bind(aPort);
-//  FListener.L;
-  FActive := True;
-
-  TThread.CreateAnonymousThread(Listen).Start;
-end;
-
-///////////////////////////////////////////////////////////////////////////////
-//// Other
-///////////////////////////////////////////////////////////////////////////////
 
 procedure TuTCPServer.Listen;
 begin
@@ -124,9 +106,15 @@ begin
   TMonitor.Exit(FClients);
 end;
 
-///////////////////////////////////////////////////////////////////////////////
-//// Deconstruction
-///////////////////////////////////////////////////////////////////////////////
+procedure TuTCPServer.Start(aPort: Integer);
+begin
+  FListener := TSocket.Create(TSocketType.TCP);
+  FListener.Bind(aPort);
+//  FListener.L;
+  FActive := True;
+
+  TThread.CreateAnonymousThread(Listen).Start;
+end;
 
 procedure TuTCPServer.Stop;
 begin
