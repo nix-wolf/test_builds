@@ -3,6 +3,7 @@ unit uxfraNetMenu;
 interface
 
 uses
+  Winapi.Windows,
   System.SysUtils,
   System.Types,
   System.UITypes,
@@ -35,19 +36,17 @@ type
     lblStatus: TLabel;
     procedure btnHostGameClick(Sender: TObject);
     procedure btnJoinGameClick(Sender: TObject);
-    procedure edtChatKeyPress(Sender: TObject; var aKey: Char);
+    procedure edtChatKeyPress(Sender: TObject; var Key: Word;
+      var KeyChar: WideChar; Shift: TShiftState);
 
   private
     FNetworkManager: TNetworkManager;
-    FDelaytimer: TTimer;
     procedure HandleNetworkLogging(const aMsg: String);
-    procedure UpdateRoleUI(aNewRole: TNetworkRole);
-    procedure DiscoveryDebounce(Sender: TObject);
+    procedure HandleRoleChange(const aRole: TNetworkRole);
+    procedure UpdateRoleUI(const aRole: TNetworkRole);
   public
     constructor Create(aOwner: TComponent); override;
     destructor Destroy; override;
-
-    procedure StartDiscovery;
   end;
 
 var
@@ -72,11 +71,9 @@ begin
   inherited Create(aOwner);
   FNetworkManager := TNetworkManager.Create;
   FNetworkManager.OnLog := HandleNetworkLogging;
-
+  FNetworkManager.OnRoleChange := HandleRoleChange;
   memInfo.Lines.Add('Network Frame Initalized...');
-//  StartDiscovery;
-
-//  FDelayTimer := TTimer.Create(nil);
+  edtChat.OnKeyDown := edtChatKeyPress;
 end;
 
 destructor TxfraNetMenu.Destroy;
@@ -85,18 +82,15 @@ begin
   inherited Destroy;
 end;
 
-procedure TxfraNetMenu.DiscoveryDebounce(Sender: TObject);
-begin
-//
-end;
 
-procedure TxfraNetMenu.edtChatKeyPress(Sender: TObject; var aKey: Char);
+procedure TxfraNetMenu.edtChatKeyPress(Sender: TObject; var Key: Word; var KeyChar: WideChar; Shift: TShiftState);
 begin
-  if aKey = #13 then begin
-    if edtChat.Text <> '' then begin
-//      FNetworkManager.SendMessage(edtChat.Text);
+  if Key = VK_RETURN then begin
+    if Trim(edtChat.Text) <> '' then begin
+      //todo need to store username somewhere
+      FNetworkManager.SendChatMessage('aUserName', edtChat.Text);
       edtChat.Text := '';
-      aKey := #0 //prevents beep?
+      Key := 0;
     end; {IF}
   end; {IF}
 end;
@@ -108,17 +102,18 @@ begin
   memInfo.SelStart := Length(memInfo.Text);
 end;
 
-procedure TxfraNetMenu.StartDiscovery;
+procedure TxfraNetMenu.HandleRoleChange(const aRole: TNetworkRole);
 begin
-  FNetworkManager.DiscoverAndJoin(6000);
+  UpdateRoleUI(aRole);
 end;
 
-procedure TxfraNetMenu.UpdateRoleUI(aNewRole: TNetworkRole);
+procedure TxfraNetMenu.UpdateRoleUI(const aRole: TNetworkRole);
 begin
-  case aNewRole of
+  case aRole of
     nrNone: lblStatus.Text   := 'Mode: None';
     nrClient: lblStatus.Text := 'Mode: Client';
     nrServer: lblStatus.Text := 'Mode: Server';
+    nrHub: lblStatus.Text := 'Mode: Server';
   end;
 end;
 

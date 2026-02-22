@@ -1,0 +1,38 @@
+object xfraMainMenu: TxfraMainMenu
+  Size.Width = 680.000000000000000000
+  Size.Height = 564.000000000000000000
+  Size.PlatformDefault = False
+  object lLayout: TLayout
+    Align = Center
+    Margins.Left = 50.000000000000000000
+    Margins.Top = 50.000000000000000000
+    Margins.Right = 50.000000000000000000
+    Margins.Bottom = 50.000000000000000000
+    Size.Width = 580.000000000000000000
+    Size.Height = 464.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 0
+    object btnMultiButton: TButton
+      Position.X = 136.000000000000000000
+      Position.Y = 216.000000000000000000
+      Size.Width = 321.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 1
+      Text = 'Multiplayer'
+      TextSettings.Trimming = None
+      OnClick = btnMultiButtonClick
+    end
+    object btnSinglePlayer: TButton
+      Position.X = 136.000000000000000000
+      Position.Y = 186.000000000000000000
+      Size.Width = 321.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 0
+      Text = 'Single Player'
+      TextSettings.Trimming = None
+      OnClick = btnSinglePlayerClick
+    end
+  end
+end

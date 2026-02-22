@@ -3,13 +3,17 @@ program VE_ARC;
 uses
   System.StartUpCopy,
   FMX.Forms,
-  uxfraSnake in 'uxfraSnake.pas' {xfraSnake},
-  uxfrmLoader in 'uxfrmLoader.pas' {xfrmLoader: TFrame},
-  uxfraPong in 'uxfraPong.pas' {xfraPong},
-  uNetworkManager in 'uNetworkManager.pas',
-  uNetworkTypes in 'uNetworkTypes.pas',
-  uxfraMainMenu in 'uxfraMainMenu.pas' {xfraMainMenu: TFrame},
-  uxfraNetMenu in 'uxfraNetMenu.pas' {xfraNetMenu: TFrame};
+  uxfraSnake      in 'uxfraSnake.pas'       {xfraSnake: T},
+  uxfrmLoader     in 'uxfrmLoader.pas'      {xfrmLoader: TFrame},
+  uxfraPong       in 'uxfraPong.pas'        {xfraPong: T},
+  uxfraMainMenu   in 'uxfraMainMenu.pas'    {xfraMainMenu: TFrame},
+  uxfraNetMenu    in 'uxfraNetMenu.pas'     {xfraNetMenu: TFrame},
+  uNetManager     in 'uNetManager.pas',     {}
+  uTCPClient      in 'uTCPClient.pas',      {}
+  uTCPServer      in 'uTCPServer.pas',      {}
+  uNetworkManager in 'uNetworkManager.pas', {}
+  uNetworkTypes   in 'uNetworkTypes.pas',   {}
+  uUDPNode        in 'uUDPNode.pas';        {}
 
 {$R *.res}
 

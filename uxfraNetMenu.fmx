@@ -66,9 +66,9 @@ object xfraNetMenu: TxfraNetMenu
       Size.PlatformDefault = False
     end
     object lblStatus: TLabel
-      Position.X = 56.000000000000000000
+      Position.X = 48.000000000000000000
       Position.Y = 24.000000000000000000
-      Text = 'Status Label'
+      Text = 'Mode: None'
       TabOrder = 5
     end
   end
