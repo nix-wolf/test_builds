@@ -53,7 +53,7 @@ begin
   FSocket.Bind(TNetEndpoint.Create(TIPAddress.Create('0.0.0.0'), aPort));
   FActive := True;
 
-  FReadThread := TuReadThread.Create(FSocket, OnDataRecieved, Disconnect);
+  FReadThread := TuReadThread.Create(FSocket, OnDataRecieved, Stop);
   FReadThread.Start;
 end;
 
