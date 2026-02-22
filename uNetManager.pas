@@ -6,6 +6,7 @@ uses
   System.Generics.Collections,
   System.SysUtils,
   System.Classes,
+  System.DateUtils,
   Vcl.ExtCtrls,
   uNetworkTypes,
   uTCPClient,
@@ -19,6 +20,7 @@ type
 
   TNetManager = class
     private
+      class var FInstance: TNetManager;
       FUDP: TuUDPNode;
       FTCPClient: TuTCPClient;
       FTCPServer: TuTCPServer;
@@ -48,10 +50,10 @@ type
       procedure OnTCPMessage(aSender: TuTCPClient; const aMsg: String);
       procedure OnUDPMessage(const aIP, aMsg: String);
       //server functions
-      procedure HandleCreateSession(const aMsg: String; aClient: TuTCPClient);
-      procedure OnConnected(aClient: TuTCPClient);
-      procedure OnDisconnected(aClient: TuTCPClient);
-      procedure OnServerTCPMessage(aSender: TuTCPClient; const aMsg: String);
+      procedure HandleCreateSession(const aMsg: String; aClient: TuTCPRemoteClient);
+      procedure OnConnected(aClient: TuTCPRemoteClient);
+      procedure OnDisconnected(aClient: TuTCPRemoteClient);
+      procedure OnServerTCPMessage(aClient: TuTCPRemoteClient; const aMsg: String);
       procedure OnServerUDPMessage(const aIP, aMsg: String);
 
 
@@ -63,15 +65,17 @@ type
       constructor Create;
       destructor Destroy; override;
 
-      procedure InitUDP(const aPort: Integer);
       procedure StartHub(const aPort: Integer);
       procedure Connect(const aIP: String; const aPort: Integer);
 
-      property UDP: TuUDPNode read FUDP;
-      property TCPClient: TuTCPClient read FTCPClient;
-      property TCPServer: TuTCPServer read FTCPServer;
-      property OnLog: TUIEvent<String> read FOnLog write FOnLog;
-      property OnRoleChange: TUIEvent<TNetworkRole> read FOnRoleChange write FOnRoleChange;
+      class property UDP: TuUDPNode read FUDP;
+      class property TCPClient: TuTCPClient read FTCPClient;
+      class property TCPServer: TuTCPServer read FTCPServer;
+      class property OnLog: TUIEvent<String> read FOnLog write FOnLog;
+      class property OnRoleChange: TUIEvent<TNetworkRole> read FOnRoleChange write FOnRoleChange;
+
+      class function Get: TNetManager;
+      procedure Start;
   end;
 
 var
@@ -87,18 +91,36 @@ implementation
 
 constructor TNetManager.Create;
 begin
+  FServerPort := 6000;
+
   FUDP := TuUDPNode.Create;
-  FUDP.OnDataRecieved := OnUDPMessage;
+  FTCPClient := TuTCPClient.Create;
+  FTCPServer := TuTCPServer.Create;
+  FActiveSessions := TList<TGameSession>.Create;
+
+  FBroadcastTimer := TTimer.Create(nil);
+  FBroadcastTimer.Enabled := False;
+  FBroadcastTimer.Interval := 2000;
+  FBroadcastTimer.OnTimer := OnBroadcastTimer;
 end;
 
-procedure TNetManager.InitUDP(const aPort: Integer);
+procedure TNetManager.Start;
 begin
-  FUDP.Listen(aPort);
+  FUDP := TuUDPNode.Create;
+  FUDP.OnDataRecieved := OnUDPMessage;
+  FUDP.Start(6000);
 end;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// Other
 ///////////////////////////////////////////////////////////////////////////////
+
+class function TNetManager.Get: TNetManager;
+begin
+  if FInstance = nil then
+    FInstance := TNetManager.Create;
+  Result := FInstance;
+end;
 
 procedure TNetManager.OnBroadcastTimer(Sender: TObject);
 begin
@@ -113,7 +135,7 @@ begin
     if FDiscoveryAttempts >= 3 then begin
       FRole := nrHub;
       UpdateRoleToUI;
-      StartHub(FServerPort);
+//      StartHub(FServerPort);
       FBroadcastTimer.Enabled := False;
     end {IF}
     else begin
@@ -126,8 +148,20 @@ begin
 end;
 
 procedure TNetManager.OnCleanUpTimer(Sender: TObject);
+  var
+    i: Integer;
 begin
-
+  LogToUI('Cleaning Up Sessions.');
+  TMonitor.Enter(FActiveSessions);
+  try
+    for i := FActiveSessions.Count - 1 downto 0 do begin
+      if SecondsBetween(Now, FActiveSessions[i].LastSeen) > 10 then begin
+        FActiveSessions.Delete(i);
+      end; {IF}
+    end; {FOR}
+  finally
+    TMonitor.Exit(FActiveSessions);
+  end;
 end;
 
 
@@ -158,7 +192,6 @@ procedure TNetManager.Connect(const aIP: String; const aPort: Integer);
 begin
   if not Assigned(FTCPClient) then
     FTCPClient := TuTCPClient.Create;
-
   FTCPClient.Connect(aIP, aPort);
 end;
 
@@ -196,6 +229,7 @@ end;
 procedure TNetManager.StartHub(const aPort: Integer);
 begin
   if not Assigned(FTCPServer) then begin
+    LogToUI('Starting Lobby Server...');
     FTCPServer := TuTCPServer.Create;
 
     FTCPServer.OnConnected := OnConnected;
@@ -206,17 +240,17 @@ begin
   end;{IF}
 end;
 
-procedure TNetManager.OnConnected(aClient: TuTCPClient);
+procedure TNetManager.OnConnected(aClient: TuTCPRemoteClient);
 begin
 
 end;
 
-procedure TNetManager.OnDisconnected(aClient: TuTCPClient);
+procedure TNetManager.OnDisconnected(aClient: TuTCPRemoteClient);
 begin
 
 end;
 
-procedure TNetManager.OnServerTCPMessage(aSender: TuTCPClient;
+procedure TNetManager.OnServerTCPMessage(aClient: TuTCPRemoteClient;
   const aMsg: String);
 begin
 
@@ -227,30 +261,46 @@ begin
 
 end;
 
+procedure TNetManager.HandleCreateSession(const aMsg: String;
+  aClient: TuTCPRemoteClient);
+begin
+
+end;
+
+
 ///////////////////////////////////////////////////////////////////////////////
 //// Deconstruction
 ///////////////////////////////////////////////////////////////////////////////
 
 destructor TNetManager.Destroy;
 begin
-  if Assigned(FUDP) then FUDP.Free;
-  if Assigned(FTCPClient) then FTCPClient.Free;
-  if Assigned(FTCPServer) then FTCPServer.Free;
+  if Assigned(FBroadcastTimer) then begin
+    FBroadcastTimer.Enabled := False;
+    FBroadcastTimer.Free;
+    FBroadcastTimer := nil;
+  end; {IF}
+  if Assigned(FUDP) then begin
+   FUDP.Free;
+   FUDP := nil;
+  end; {IF}
+  if Assigned(FTCPClient) then begin
+   FTCPClient.Free;
+   FTCPClient := nil;
+  end; {IF}
+  if Assigned(FTCPServer) then begin
+   FTCPServer.Free;
+   FTCPServer := nil;
+  end; {IF}
 
   inherited;
 end;
 
-procedure TNetManager.HandleCreateSession(const aMsg: String;
-  aClient: TuTCPClient);
-begin
-
-end;
-
-////Singleton Logic
 initialization
-  NetMgr := TNetManager.Create;
 
 finalization
-  NetMgr.Free;
-
+  if TNetManager.FInstance <> nil then begin
+    var aInst := TNetManager.FInstance;
+    TNetManager.FInstance := nil;
+    aInst.Free;
+  end; {IF}
 end.

@@ -3,6 +3,7 @@ unit uReadThread;
 interface
 
 uses
+  Winapi.Winsock2,
   System.Net.Socket,
   System.SysUtils,
   System.Classes,
@@ -52,8 +53,9 @@ begin
   FBufferData := '';
 
   while not Terminated do begin
+    if (FSocket = nil) or (not(TSocketState.Connected in FSocket.State)) then
+      if FSocket.SocketType = TSocketType.TCP then break;
     try
-      if FSocket.ReceiveLength > 0 then begin
         aLen := FSocket.ReceiveFrom(aBuffer, aRemoteEndpoint, 0, Length(aBuffer));
         if aLen <= 0 then Break;
 
@@ -68,7 +70,6 @@ begin
           if Assigned(FOnLine) then
             TThread.Queue(nil, procedure begin FOnLine(aIP, aLine); end);
         end; {WHILE}
-      end; {IF}
     except
       Break;
     end;

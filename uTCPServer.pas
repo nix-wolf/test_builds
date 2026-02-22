@@ -3,6 +3,7 @@ unit uTCPServer;
 interface
 
 uses
+  Winapi.Winsock2,
   System.Net.Socket,
   System.SysUtils,
   System.Classes,
@@ -80,10 +81,10 @@ end;
 procedure TuTCPServer.Start(aPort: Integer);
 begin
   FListener := TSocket.Create(TSocketType.TCP);
-  FListener.Bind(aPort);
+//  FListener.Bind(TNetEndpoint.Create(TIPAddress.Any, aPort + 1));
   FActive := True;
 
-  TThread.CreateAnonymousThread(Listen).Start;
+//  TThread.CreateAnonymousThread(Listen).Start;
 end;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -155,7 +156,7 @@ end;
 procedure TuTCPServer.Stop;
 begin
   FActive := False;
-  FListener.Close;
+  if Assigned(FListener) then FListener.Close;
 end;
 
 destructor TuTCPServer.Destroy;

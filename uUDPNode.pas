@@ -3,6 +3,7 @@ unit uUDPNode;
 interface
 
 uses
+  Winapi.Winsock2,
   System.Net.Socket,
   System.SysUtils,
   System.Classes,
@@ -20,7 +21,7 @@ type
       FOnData: TOnUDPData;
     public
       constructor Create;
-      procedure Listen(const aPort: Integer);
+      procedure Start(const aPort: Integer);
       procedure Broadcast(const aMsg: String; const aPort: Integer);
       procedure Send(const aMsg, aIP: String; const aPort: Integer);
 
@@ -28,7 +29,7 @@ type
       destructor Destroy; override;
 
       property OnDataRecieved: TOnUDPData read FOnData write FOnData;
-
+      property Active: Boolean read FActive;
   end;
 
 implementation
@@ -45,16 +46,28 @@ begin
   FActive := False;
 end;
 
-procedure TuUDPNode.Listen(const aPort: Integer);
+procedure TuUDPNode.Start(const aPort: Integer);
 begin
   if FActive then Exit;
-  FSocket := TSocket.Create(TSocketType.UDP);
-  //binding to everything for the port being used?? maybe for now
-  FSocket.Bind(TNetEndpoint.Create(TIPAddress.Create('0.0.0.0'), aPort));
-  FActive := True;
 
-  FReadThread := TuReadThread.Create(FSocket, OnDataRecieved, Disconnect);
-  FReadThread.Start;
+  FSocket := TSocket.Create(TSocketType.UDP);
+  try
+    FSocket.Connect('', '0.0.0.0', '', aPort);
+    var v := 1;
+    Winapi.Winsock2.setsockopt(FSocket.Handle, SOL_SOCKET, SO_BROADCAST, @v, SizeOf(v));
+
+    FActive := True;
+
+//    FReadThread := TuReadThread.Create(FSocket, OnDataRecieved, Disconnect);
+//    FReadThread.Start;
+  except
+    on E: Exception do begin
+      FActive := False;
+      FSocket.Free;
+      FSocket := nil;
+      raise Exception.Create('UDP Bind Failed: ' + E.Message);
+    end;
+  end;
 end;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -69,16 +82,17 @@ end;
 procedure TuUDPNode.Send(const aMsg, aIP: String; const aPort: Integer);
 var
   aBytes: TBytes;
-  aSock: TSocket;
   aEP: TNetEndpoint;
 begin
+  if not Assigned(FSocket) then Exit;
+  var SentBytes: Integer;
   aBytes := TEncoding.UTF8.GetBytes(aMsg);
-  aSock := TSocket.Create(TSocketType.UDP);
   try
     aEP := TNetEndpoint.Create(TIPAddress.Create(aIP), aPort);
-    aSock.SendTo(aBytes, Length(aBytes), aEp);
-  finally
-    aSock.Free;
+    SentBytes := FSocket.SendTo(aBytes, aEP);
+  except
+    on E: Exception do
+      WriteLn('UDP Send Error: ' + E.Message);
   end;
 end;
 

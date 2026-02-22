@@ -9,7 +9,7 @@ uses
   System.UITypes,
   System.Classes,
   System.Variants,
-  uNetworkManager,
+  uNetManager,
   FMX.Types,
   FMX.Graphics,
   FMX.Controls,
@@ -40,7 +40,7 @@ type
       var KeyChar: WideChar; Shift: TShiftState);
 
   private
-    FNetworkManager: TNetworkManager;
+    FNetworkManager: TNetManager;
     procedure HandleNetworkLogging(const aMsg: String);
     procedure HandleRoleChange(const aRole: TNetworkRole);
     procedure UpdateRoleUI(const aRole: TNetworkRole);
@@ -69,7 +69,7 @@ end;
 constructor TxfraNetMenu.Create(aOwner: TComponent);
 begin
   inherited Create(aOwner);
-  FNetworkManager := TNetworkManager.Create;
+  FNetworkManager := TNetManager.Get;
   FNetworkManager.OnLog := HandleNetworkLogging;
   FNetworkManager.OnRoleChange := HandleRoleChange;
   memInfo.Lines.Add('Network Frame Initalized...');
@@ -78,7 +78,6 @@ end;
 
 destructor TxfraNetMenu.Destroy;
 begin
-  FNetworkManager.Free;
   inherited Destroy;
 end;
 
@@ -88,7 +87,7 @@ begin
   if Key = VK_RETURN then begin
     if Trim(edtChat.Text) <> '' then begin
       //todo need to store username somewhere
-      FNetworkManager.SendChatMessage('aUserName', edtChat.Text);
+//      FNetworkManager.SendChatMessage('aUserName', edtChat.Text);
       edtChat.Text := '';
       Key := 0;
     end; {IF}

@@ -58,9 +58,7 @@ type
     procedure OnUDPRead(aThread: TIdUDPListenerThread; const aData: TIdBytes;
       aBinding: TIdSocketHandle);
     procedure OnHubExecute(aContext: TIdContext);
-    procedure RegisterWithHub(const aSession: TGameSession);
     procedure HandleRegistration(const aData: String; aContext: TIdContext);
-    procedure OnCleanupTimer(Sender: TObject);
     procedure LogToUI(const aMsg: String);
     procedure UpdateRoleToUI;
 
@@ -277,23 +275,6 @@ begin
 
 end;
 
-procedure TNetworkManager.OnCleanupTimer(Sender: TObject);
-  var
-    i: Integer;
-begin
-  LogToUI('Cleaning Up Sessions.');
-  TMonitor.Enter(FActiveSessions);
-  try
-    for i := FActiveSessions.Count - 1 downto 0 do begin
-      if SecondsBetween(Now, FActiveSessions[i].LastSeen) > 10 then begin
-        FActiveSessions.Delete(i);
-      end; {IF}
-    end; {FOR}
-  finally
-    TMonitor.Exit(FActiveSessions);
-  end;
-end;
-
 procedure TNetworkManager.onClientConnected(Sender: TObject);
 begin
   FRole := nrClient;
@@ -420,14 +401,6 @@ begin
 
 end;
 
-procedure TNetworkManager.RegisterWithHub(const aSession: TGameSession);
-begin
-  if FTCPClient.Connected then begin
-    LogToUI('Registering with Hub');
-    FTCPClient.IOHandler.WriteLn('REGISTER,' + aSession.ToNetworkString);
-  end; {IF}
-end;
-
 procedure TNetworkManager.SendChatMessage(const  aUser, aMsg: String);
   var
     aFinalMsg: String;
@@ -481,7 +454,6 @@ procedure TReadThread.Execute;
 var
   aMsg: String;
   aNetMgr: TNetworkManager;
-  aByteCount: Integer;
 begin
   aNetMgr := TNetworkManager(FManager);
 
