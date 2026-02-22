@@ -7,24 +7,24 @@ uses
   System.SysUtils,
   System.Classes,
   System.Generics.Collections,
-  uTCPRemoteClient;
+  uTCPClient;
 
 type
-  TOnClientMessage =
-    procedure(aClient: TuTCPRemoteClient; const aMsg: String) of Object;
-  TClientEvent = procedure(aClient: TuTCPRemoteClient) of Object;
+  TOnClientMessage = procedure(aClient: TuTCPClient; const aMsg: String) of Object;
 
-  TuTCPServer = class(TObject)
+  TClientEvent = procedure(aClient: TuTCPClient) of Object;
+
+  TuTCPServer = class
     private
       FListener: TSocket;
-      FClients: TList<TuTCPRemoteClient>;
+      FClients: TList<TSocket>;
       FActive: Boolean;
       FOnMsg: TOnClientMessage;
       FOnConnect: TClientEvent;
       FOnDisconnect: TClientEvent;
 
       procedure Listen;
-      procedure ReadClientMessages(aClient: TuTCPRemoteClient);
+      procedure ReadClientMessages(aClient: TSocket);
     public
       constructor Create;
       destructor Destroy; override;
@@ -48,7 +48,7 @@ implementation
 
 constructor TuTCPServer.Create;
 begin
-  FClients := TList<TuTCPRemoteClient>.Create;
+  FClients := TList<TSocket>.Create;
   FActive := False;
 end;
 
@@ -101,7 +101,7 @@ begin
   end;
 end;
 
-procedure TuTCPServer.ReadClientMessages(aClient: TuTCPRemoteClient);
+procedure TuTCPServer.ReadClientMessages(aClient: TSocket);
 var
   aBuffer: TBytes;
   aLen: Integer;
@@ -123,7 +123,7 @@ begin
 
         if Assigned(FOnMsg) then
           TThread.Queue(nil, procedure begin
-            FOnMsg(aClient, aLine);
+            FOnMsg(aClient.Endpoint.Address.Address, aLine);
           end);
       end; {WHILE}
     end; {IF}

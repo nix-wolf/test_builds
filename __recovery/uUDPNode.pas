@@ -10,7 +10,7 @@ uses
   uReadThread;
 
 type
-  TOnUDPData = procedure(const aIP, aMsg: String) of Object;
+  TOnUDPData = procedure(const aMsg: String) of Object;
 
   TuUDPNode = class
     private
@@ -55,7 +55,7 @@ begin
   FSocket.Bind(TNetEndpoint.Create(TIPAddress.Create('0.0.0.0'), aPort));
   FActive := True;
 
-  FReadThread := TuReadThread.Create(FSocket, Line, Disconnect);
+  FReadThread := TuReadThread.Create(FSocket, OnDataRecieved, Disconnect);
   FReadThread.Start;
 end;
 
@@ -86,7 +86,7 @@ end;
 
 procedure TuUDPNode.Line(const aMsg: String);
 begin
-
+ //todo
 end;
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -30,7 +30,7 @@ type
       //should be pulled for ini file?
       FServerPort: Integer;
       //can this be moved into discovery of just doing the discovery in a loop
-      FDiscoveryAttempts: Integer;
+      FDiscoverAttempts: Integer;
       FHubIP: String;
       FGameName: String;
 
@@ -58,7 +58,7 @@ type
 
       procedure LogToUI(const aMsg: String);
       procedure UpdateRoleToUI;
-      procedure UIEventCallback<T>(aEvent: TUIEvent<T>; aT: T);
+      procedure UIEventCallback<T>(aEvent: TUiEvent<T>; aT: T);
     public
       constructor Create;
       destructor Destroy; override;
@@ -102,27 +102,7 @@ end;
 
 procedure TNetManager.OnBroadcastTimer(Sender: TObject);
 begin
- if (FRole = nrClient) or (FRole = nrServer) then begin
-    if FHubIP <> '' then begin
-//      LogToUI('UDP HEARTBEAT...');
-      FUDP.Send('HEARTBEAT,' + FGameName, FHubIP, FServerPort);
-    end; {IF}
-  end; {IF}
 
-  if FRole = nrNone then begin
-    if FDiscoveryAttempts >= 3 then begin
-      FRole := nrHub;
-      UpdateRoleToUI;
-      StartHub(FServerPort);
-      FBroadcastTimer.Enabled := False;
-    end {IF}
-    else begin
-      UpdateRoleToUI;
-      LogToUI('Checking for Active Hub');
-      FUDP.Broadcast('VE_PROJ_WOLF', FServerPort);
-      Inc(FDiscoveryAttempts);
-    end; {ELSE}
-  end; {IF}
 end;
 
 procedure TNetManager.OnCleanUpTimer(Sender: TObject);
@@ -131,7 +111,7 @@ begin
 end;
 
 
-procedure TNetManager.UIEventCallback<T>(aEvent: TUiEvent<T>; aT: T);
+procedure TNetManager.UIEventCallBack<T>(aEvent: TUiEvent<T>; aT: T);
 begin
   if Assigned(aEvent) then begin
     TThread.Queue(nil, procedure begin
@@ -197,11 +177,6 @@ procedure TNetManager.StartHub(const aPort: Integer);
 begin
   if not Assigned(FTCPServer) then begin
     FTCPServer := TuTCPServer.Create;
-
-    FTCPServer.OnConnected := OnConnected;
-    FTCPServer.OnDisconnected := OnDisconnected;
-    FTCPServer.OnMessage := OnServerTCPMessage;
-
     FTCPServer.Start(aPort);
   end;{IF}
 end;

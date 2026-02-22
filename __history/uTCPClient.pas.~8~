@@ -15,6 +15,7 @@ type
   TuTCPClient = class
     private
       FSocket: TSocket;
+      //todo: Read Thread should be own unit, implmented twice
       FReadThread: TuReadThread;
       FOnData: TOnDataReceived;
       FConnected: Boolean;
