@@ -17,7 +17,6 @@ type
 
   TUIEvent = procedure(const aMsg: String) of Object;
   TRoleEvent = procedure(const aRole: TNetworkRole) of Object;
-  TUiEvent<T> = procedure(const aT: T) of Object;
 
   TNetManager = class
     private
@@ -36,8 +35,8 @@ type
       FHubIP: String;
       FGameName: String;
 
-      FOnLog: TUiEvent;
-      FOnRoleChange: TUiEvent;
+      FOnLog: TUIEvent;
+      FOnRoleChange: TRoleEvent;
 
       //timer functions
       procedure OnBroadcastTimer(Sender: TObject);
@@ -60,7 +59,7 @@ type
 
       procedure LogToUI(const aMsg: String);
       procedure UpdateRoleToUI;
-      procedure SafeUI<T>(AEvent: TUiEvent<T>; AValue: T);
+
     public
       constructor Create;
       destructor Destroy; override;
@@ -72,8 +71,6 @@ type
       property UDP: TuUDPNode read FUDP;
       property TCPClient: TuTCPClient read FTCPClient;
       property TCPServer: TuTCPServer read FTCPServer;
-      property OnLog: TUiEvent read FOnLog write FOnLog;
-      property OnRoleChange: TUiEvent read FOnRoleChange write FOnRoleChange;
   end;
 
 var
@@ -93,11 +90,6 @@ begin
   FUDP.OnDataRecieved := OnUDPMessage;
 end;
 
-procedure TNetManager.InitUDP(const aPort: Integer);
-begin
-  FUDP.Listen(aPort);
-end;
-
 ///////////////////////////////////////////////////////////////////////////////
 //// Other
 ///////////////////////////////////////////////////////////////////////////////
@@ -112,28 +104,19 @@ begin
 
 end;
 
-
-procedure TNetManager.SafeUI<T>(AEvent: TUiEvent<T>; AValue: T);
+procedure TNetManager.InitUDP(const aPort: Integer);
 begin
-
+  FUDP.Listen(aPort);
 end;
 
 procedure TNetManager.LogToUI(const aMsg: String);
 begin
-//  if Assigned(FOnLog) then begin
-//    TThread.Queue(nil, procedure begin
-//      FOnLog(aMsg);
-//    end);{PROCEDURE}
-//  end; {IF}
+
 end;
 
 procedure TNetManager.UpdateRoleToUI;
 begin
-//  if Assigned(FOnRoleChange) then begin
-//    TThread.Queue(nil, procedure begin
-//      FOnRoleChange<TNetworkRole>(FRole);
-//    end);{PROCEDURE}
-//  end; {IF}
+
 end;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -186,6 +169,7 @@ begin
     FTCPServer.Start(aPort);
   end;{IF}
 end;
+
 
 procedure TNetManager.OnConnected(aClient: TuTCPClient);
 begin
