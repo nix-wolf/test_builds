@@ -5,12 +5,9 @@ interface
 uses System.SysUtils;
 
 type
-//possibly update this to be two seperate types, that is a game type
-//and then a session that includes a game type, and an enum for the games
-//that maybe popoulated because of games in the game directory, that are
-//ethier directories of files, with ini for the one to run
-//or is just a self contained .pas for the game via the name??
-  TGameSession = record
+  TuPacketFlag = (pfCHAT, pfVEWLF, pfSES, pfJOIN, pfUPD);
+
+  TuGameSession = record
     HostIP: String;
     HostName: String;
     GameType: String;
@@ -22,11 +19,20 @@ type
     procedure FromNetworkString(AData: String);
   end;
 
+  TuPacket = record
+    FCommand: String;
+    FIP: String;
+    FData: String;
+
+    function Parse: string;
+    procedure FromString(const aMsg: String);
+    class function Create(aPF: TuPacketFlag; const aMsg: String): TuPacket; static;
+  end;
 implementation
 
-{ TGameSession }
+{ TuGameSession }
 
-procedure TGameSession.FromNetworkString(AData: String);
+procedure TuGameSession.FromNetworkString(AData: String);
   var
     aNetworkObject: TArray<String>;
 begin
@@ -40,9 +46,26 @@ begin
   end; {IF}
 end;
 
-function TGameSession.ToNetworkString: String;
+function TuGameSession.ToNetworkString: String;
 begin
   Result := Format('%s,%s,%s,%d,%d', [HostIP, HostName, GameType, PlayerCount, MaxPlayers]);
+end;
+
+{ TuPacket }
+
+class function TuPacket.Create(aPF: TuPacketFlag; const aMsg: String): TuPacket;
+begin
+
+end;
+
+procedure TuPacket.FromString(const aMsg: String);
+begin
+
+end;
+
+function TuPacket.Parse: string;
+begin
+
 end;
 
 end.

@@ -1,0 +1,81 @@
+unit uReadThread;
+
+interface
+
+uses
+  Winapi.Winsock2,
+  System.Net.Socket,
+  System.SysUtils,
+  System.Classes,
+  System.Generics.Collections,
+  System.Threading;
+
+type
+  TOnLine = procedure(const aIP, aLine: String) of Object;
+  TOnDisconnect = procedure of Object;
+
+  TuReadThread = class(TThread)
+    private
+      FSocket: TSocket;
+      FOnLine: TOnLine;
+      FOnDisconnect: TOnDisconnect;
+      FBufferData: String;
+      FBufferSize: Integer;
+    protected
+      procedure Execute; override;
+    public
+      constructor Create(aSocket: TSocket;
+        aOnLine: TOnLine; aOnDisconnect: TOnDisconnect);
+      property BufferSize: Integer read FBufferSize write FBufferSize;
+  end;
+
+implementation
+
+constructor TuReadThread.Create(aSocket: TSocket;
+        aOnLine: TOnLine; aOnDisconnect: TOnDisconnect);
+begin
+  inherited Create(True);
+  FSocket := aSocket;
+  FOnLine := aOnLine;
+  FOnDisconnect := aOnDisconnect;
+  FBufferSize := 65535;
+  FreeOnTerminate := True;
+end;
+
+procedure TuReadThread.Execute;
+var
+  aBuffer: TBytes;
+  aLen: Integer;
+  i: Integer;
+  aRemoteEndpoint: TNetEndPoint;
+begin
+  SetLength(aBuffer, FBufferSize);
+  FBufferData := '';
+  aRemoteEndpoint := Default(TNetEndpoint);
+
+  while not Terminated do begin
+    try
+        aLen := FSocket.ReceiveFrom(aBuffer, Length(aBuffer), aRemoteEndpoint, []);
+        if aLen <= 0 then Break;
+
+        FBufferData := TEncoding.UTF8.GetString(aBuffer, 0, aLen);
+        var aIP := aRemoteEndpoint.Address.Address;
+
+        while Pos(#10, FBufferData) > 0 do begin
+          i := Pos(#10, FBufferData);
+          var aLine := Copy(FBufferData, 1, i - 1).Trim;
+          FBufferData := Copy(FBufferData, i + 1, MaxInt);
+
+          if Assigned(FOnLine) then
+            TThread.Queue(nil, procedure begin FOnLine(aIP, aLine); end);
+        end; {WHILE}
+    except
+      Break;
+    end;
+  end;{WHILE}
+
+  if Assigned(FOnDisconnect) then
+    TThread.Queue(nil, procedure begin FOnDisconnect(); end);
+end;
+
+end.

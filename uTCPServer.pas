@@ -38,6 +38,7 @@ type
   TOnClientMessage =
     procedure(aClient: TuTCPRemoteClient; const aMsg: String) of Object;
   TClientEvent = procedure(aClient: TuTCPRemoteClient) of Object;
+  TUIEvent = procedure(const aMsg: String) of Object;
 
   TuTCPServer = class(TObject)
     private
@@ -47,6 +48,9 @@ type
       FOnMsg: TOnClientMessage;
       FOnConnect: TClientEvent;
       FOnDisconnect: TClientEvent;
+
+      FOnLog: TUIEvent;
+      procedure LogToUI(const aMsg: String);
 
       procedure Listen;
     public
@@ -62,6 +66,7 @@ type
       property OnMessage: TOnClientMessage read FOnMsg write FOnMsg;
       property OnConnected: TClientEvent read FOnConnect write FOnConnect;
       property OnDisconnected: TClientEvent read FOnDisconnect write FOnDisconnect;
+      property OnLog: TUIEvent read FOnLog write FOnLog;
 
   end;
 implementation
@@ -79,11 +84,34 @@ begin
 end;
 
 procedure TuTCPServer.Start(aPort: Integer);
+var
+  aAddr: sockaddr_in;
+  aV: Integer;
+  aListener: Winapi.Winsock2.TSocket;
 begin
-  FListener := TSocket.Create(TSocketType.TCP);
-//  FListener.Bind(TNetEndpoint.Create(TIPAddress.Any, aPort + 1));
-  FActive := True;
 
+  aListener := Winapi.Winsock2.socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  if aListener = INVALID_SOCKET then
+    raise Exception.Create('Winsock socket creation failed: ' + IntToStr(WSAGetLastError));
+
+//  FListener := TSocket.Create(aListener);
+
+  aV := 1;
+  setsockopt(aListener, SOL_SOCKET, SO_REUSEADDR, @aV, SizeOf(aV));
+
+  aAddr.sin_family := AF_INET;
+  aAddr.sin_port := htons(aPort + 1);
+  aAddr.sin_addr.S_addr := INADDR_ANY;
+
+  if Winapi.Winsock2.bind(aListener, sockaddr(aAddr), SizeOf(aAddr)) <> 0 then
+    raise Exception.Create('Manual TCP Bind Failed: ' + IntToStr(WSAGetLastError));
+
+  if Winapi.Winsock2.listen(aListener, SOMAXCONN) <> 0 then
+    raise Exception.Create('Manual TCP Listen Failed: ' + IntToStr(WSAGetLastError));
+
+  LogToUI('TCP Hub (Hybrid) Listening on ' + IntToStr(aPort + 1));
+
+  FActive := True;
 //  TThread.CreateAnonymousThread(Listen).Start;
 end;
 
@@ -110,6 +138,11 @@ begin
         TThread.Queue(nil, procedure begin FOnConnect(aClient); end);
     end; {IF}
   end; {WHILE}
+end;
+
+procedure TuTCPServer.LogToUI(const aMsg: String);
+begin
+  OnLog(aMsg);
 end;
 
 procedure TuTCPServer.OnClientDisconnect(aClient: TuTCPRemoteClient);

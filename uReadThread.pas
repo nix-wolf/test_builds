@@ -19,7 +19,6 @@ type
       FSocket: TSocket;
       FOnLine: TOnLine;
       FOnDisconnect: TOnDisconnect;
-      FBufferData: String;
       FBufferSize: Integer;
     protected
       procedure Execute; override;
@@ -46,37 +45,36 @@ procedure TuReadThread.Execute;
 var
   aBuffer: TBytes;
   aLen: Integer;
-  i: Integer;
-  aRemoteEndpoint: TNetEndPoint;
+  RemoteAddr: sockaddr_in;
+  AddrLen: Integer;
+  aIP, aData: string;
 begin
   SetLength(aBuffer, FBufferSize);
-  FBufferData := '';
 
   while not Terminated do begin
-    if (FSocket = nil) or (not(TSocketState.Connected in FSocket.State)) then
-      if FSocket.SocketType = TSocketType.TCP then break;
-    try
-        aLen := FSocket.ReceiveFrom(aBuffer, aRemoteEndpoint, 0, Length(aBuffer));
-        if aLen <= 0 then Break;
+    AddrLen := SizeOf(RemoteAddr);
+    FillChar(RemoteAddr, AddrLen, 0);
 
-        FBufferData := TEncoding.UTF8.GetString(aBuffer, 0, aLen);
-        var aIP := aRemoteEndpoint.Address.Address;
+    aLen := Winapi.Winsock2.recvfrom(
+      FSocket.Handle,
+      aBuffer[0],
+      Length(aBuffer),
+      0,
+      sockaddr(RemoteAddr),
+      AddrLen
+    );
 
-        while Pos(#10, FBufferData) > 0 do begin
-          i := Pos(#10, FBufferData);
-          var aLine := Copy(FBufferData, 1, i - 1).Trim;
-          FBufferData := Copy(FBufferData, i + 1, MaxInt);
+    if aLen > 0 then begin
+      aIP := string(inet_ntoa(RemoteAddr.sin_addr));
+      aData := TEncoding.UTF8.GetString(aBuffer, 0, aLen);
 
-          if Assigned(FOnLine) then
-            TThread.Queue(nil, procedure begin FOnLine(aIP, aLine); end);
-        end; {WHILE}
-    except
-      Break;
-    end;
-  end;{WHILE}
-
-  if Assigned(FOnDisconnect) then
-    TThread.Queue(nil, procedure begin FOnDisconnect(); end);
+      if Assigned(FOnLine) then
+        TThread.Queue(nil, procedure begin FOnLine(aIP, aData.Trim); end);
+    end {IF}
+    else if aLen = SOCKET_ERROR then begin
+      if not Terminated then Break;
+    end;{ELSE IF}
+  end; {WHILE}
 end;
 
 end.

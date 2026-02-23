@@ -52,14 +52,15 @@ begin
 
   FSocket := TSocket.Create(TSocketType.UDP);
   try
-    FSocket.Connect('', '0.0.0.0', '', aPort);
-    var v := 1;
-    Winapi.Winsock2.setsockopt(FSocket.Handle, SOL_SOCKET, SO_BROADCAST, @v, SizeOf(v));
-
+//    FSocket.Connect('', '0.0.0.0', '', aPort);
+    var AV := 1;
+    Winapi.Winsock2.setsockopt(FSocket.Handle, SOL_SOCKET, SO_REUSEADDR, @aV, SizeOf(aV));
+    FSocket.Bind(TNetEndpoint.Create(TIPAddress.Any, aPort));
+    Winapi.Winsock2.setsockopt(FSocket.Handle, SOL_SOCKET, SO_BROADCAST, @aV, SizeOf(aV));
     FActive := True;
 
-//    FReadThread := TuReadThread.Create(FSocket, OnDataRecieved, Disconnect);
-//    FReadThread.Start;
+    FReadThread := TuReadThread.Create(FSocket, OnDataRecieved, Disconnect);
+    FReadThread.Start;
   except
     on E: Exception do begin
       FActive := False;

@@ -74,6 +74,8 @@ begin
   FNetworkManager.OnRoleChange := HandleRoleChange;
   memInfo.Lines.Add('Network Frame Initalized...');
   edtChat.OnKeyDown := edtChatKeyPress;
+
+  FNetworkManager.Start;
 end;
 
 destructor TxfraNetMenu.Destroy;
@@ -112,7 +114,7 @@ begin
     nrNone: lblStatus.Text   := 'Mode: None';
     nrClient: lblStatus.Text := 'Mode: Client';
     nrServer: lblStatus.Text := 'Mode: Server';
-    nrHub: lblStatus.Text := 'Mode: Server';
+    nrHub: lblStatus.Text := 'Mode: Hub';
   end;
 end;
 
