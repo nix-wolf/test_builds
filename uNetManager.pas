@@ -15,8 +15,6 @@ uses
   uUDPNode;
 
 type
-  TNetworkRole = (nrNone, nrClient, nrServer, nrHub);
-
   TUIEvent<T> = procedure(const aT: T) of Object;
 
   TNetManager = class
@@ -26,9 +24,9 @@ type
       FTCPClient: TuTCPClient;
       FTCPServer: TuTCPServer;
       FBroadCastTimer: TTimer;
-
+      FDispatcher: TDictionary<TuDispatchKey, TuPacketHandler>;
       FActiveSessions: TList<TuGameSession>;
-      FRole: TNetworkRole;
+      FRole: TuNetworkRole;
       FIP: String;
       //should be pulled for ini file?
       FServerPort: Integer;
@@ -38,7 +36,7 @@ type
       FGameName: String;
 
       FOnLog: TUIEvent<String>;
-      FOnRoleChange: TUIEvent<TNetworkRole>;
+      FOnRoleChange: TUIEvent<TuNetworkRole>;
 
       //timer functions
       procedure OnBroadcastTimer(Sender: TObject);
@@ -75,7 +73,7 @@ type
       class property TCPClient: TuTCPClient read FTCPClient;
       class property TCPServer: TuTCPServer read FTCPServer;
       class property OnLog: TUIEvent<String> read FOnLog write FOnLog;
-      class property OnRoleChange: TUIEvent<TNetworkRole> read FOnRoleChange write FOnRoleChange;
+      class property OnRoleChange: TUIEvent<TuNetworkRole> read FOnRoleChange write FOnRoleChange;
 
       class function Get: TNetManager;
       procedure Start;
@@ -182,7 +180,7 @@ begin
   TMonitor.Enter(FActiveSessions);
   try
     for i := FActiveSessions.Count - 1 downto 0 do begin
-      if SecondsBetween(Now, FActiveSessions[i].LastSeen) > 10 then begin
+      if SecondsBetween(Now, FActiveSessions[i].FLastSeen) > 10 then begin
         FActiveSessions.Delete(i);
       end; {IF}
     end; {FOR}
@@ -208,7 +206,7 @@ end;
 
 procedure TNetManager.UpdateRoleToUI;
 begin
-  UIEventCallback<TNetworkRole>(FOnRoleChange, FRole);
+  UIEventCallback<TuNetworkRole>(FOnRoleChange, FRole);
 end;
 
 ///////////////////////////////////////////////////////////////////////////////

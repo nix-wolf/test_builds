@@ -14,7 +14,9 @@ uses
   uNetworkManager in 'uNetworkManager.pas',
   uNetworkTypes in 'uNetworkTypes.pas',
   uUDPNode in 'uUDPNode.pas',
-  uReadThread in 'uReadThread.pas';
+  uReadThread in 'uReadThread.pas',
+  uNetworkDispatcher in 'uNetworkDispatcher.pas',
+  uNetworkHandlers in 'uNetworkHandlers.pas';
 
 {}
 

@@ -19,10 +19,8 @@ uses
   uNetworkTypes;
 
 type
-  TNetworkRole = (nrNone, nrClient, nrServer, nrHub);
-
   TUIEvent = procedure(const aMsg: String) of Object;
-  TRoleEvent = procedure(const aRole: TNetworkRole) of Object;
+  TRoleEvent = procedure(const aRole: TuNetworkRole) of Object;
 
   TReadThread = class(TThread)
   private
@@ -43,8 +41,8 @@ type
     FBroadcastTimer: TTimer;
     FReadThread: TReadThread;
 
-    FActiveSessions: TList<TGameSession>;
-    FRole: TNetworkRole;
+    FActiveSessions: TList<TuGameSession>;
+    FRole: TuNetworkRole;
 
     FServerPort: Integer;
     FDiscoveryAttempts: Integer;
@@ -72,7 +70,7 @@ type
     destructor Destroy; override;
 
     function ConnectToHub: Boolean;
-    function FetchRemoteConnections: TArray<TGameSession>;
+    function FetchRemoteConnections: TArray<TuGameSession>;
 
     procedure StartHostingHub(APort: Integer);
     procedure SendChatMessage(const  aUser, aMsg: String);
@@ -132,7 +130,7 @@ constructor TNetworkManager.Create;
 begin
   inherited Create;
   FRole := nrNone;
-  FActiveSessions := TList<TGameSession>.Create;
+  FActiveSessions := TList<TuGameSession>.Create;
   FServerPort := 6000;
   FUDPListener := TIdUDPServer.Create(nil);
   FUDPListener.DefaultPort := FServerPort;
@@ -169,7 +167,7 @@ begin
   inherited Destroy;
 end;
 
-function TNetworkManager.FetchRemoteConnections: TArray<TGameSession>;
+function TNetworkManager.FetchRemoteConnections: TArray<TuGameSession>;
   var
     aData: String;
     aGamesData: TArray<String>;
@@ -210,22 +208,22 @@ end;
 procedure TNetworkManager.HandleRegistration(const aData: String;
   aContext: TIdContext);
   var
-    aNewSession: TGameSession;
+    aNewSession: TuGameSession;
     i: Integer;
     aFound: Boolean;
 begin
   LogToUI('Handling Registration');
   aNewSession.FromNetworkString(aData);
 
-  if aNewSession.HostIP = '' then
-    aNewSession.HostIP := aContext.Binding.PeerIP;
+  if aNewSession.FHostIP = '' then
+    aNewSession.FHostIP := aContext.Binding.PeerIP;
 
   aFound := False;
 
   TMonitor.Enter(FActiveSessions);
   try
     for I := 0 to FActiveSessions.Count - 1 do begin
-      if FActiveSessions[i].HostIP = aNewSession.HostIP then begin
+      if FActiveSessions[i].FHostIP = aNewSession.FHostIP then begin
         FActiveSessions[i] := aNewSession;
         aFound := True;
         Break;
@@ -315,7 +313,7 @@ end;
 procedure TNetworkManager.OnHubExecute(aContext: TIdContext);
   var
     aRequest: String;
-    aSession: TGameSession;
+    aSession: TuGameSession;
     aResponse: String;
 begin
   aRequest := aContext.Connection.IOHandler.ReadLn;
@@ -385,9 +383,9 @@ begin
         TMonitor.Enter(FActiveSessions);
         try
           for i := 0 to FActiveSessions.Count - 1 do begin
-            if FActiveSessions[i].HostIP = aBinding.PeerIP then begin
+            if FActiveSessions[i].FHostIP = aBinding.PeerIP then begin
               var aTemp := FActiveSessions[I];
-              aTemp.LastSeen := Now();
+              aTemp.FLastSeen := Now();
               FActiveSessions[i] := aTemp;
               Break;
             end; {IF}

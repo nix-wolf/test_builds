@@ -10,6 +10,7 @@ uses
   System.Classes,
   System.Variants,
   uNetManager,
+  uNetworkTypes,
   FMX.Types,
   FMX.Graphics,
   FMX.Controls,
@@ -42,8 +43,8 @@ type
   private
     FNetworkManager: TNetManager;
     procedure HandleNetworkLogging(const aMsg: String);
-    procedure HandleRoleChange(const aRole: TNetworkRole);
-    procedure UpdateRoleUI(const aRole: TNetworkRole);
+    procedure HandleRoleChange(const aRole: TuNetworkRole);
+    procedure UpdateRoleUI(const aRole: TuNetworkRole);
   public
     constructor Create(aOwner: TComponent); override;
     destructor Destroy; override;
@@ -103,12 +104,12 @@ begin
   memInfo.SelStart := Length(memInfo.Text);
 end;
 
-procedure TxfraNetMenu.HandleRoleChange(const aRole: TNetworkRole);
+procedure TxfraNetMenu.HandleRoleChange(const aRole: TuNetworkRole);
 begin
   UpdateRoleUI(aRole);
 end;
 
-procedure TxfraNetMenu.UpdateRoleUI(const aRole: TNetworkRole);
+procedure TxfraNetMenu.UpdateRoleUI(const aRole: TuNetworkRole);
 begin
   case aRole of
     nrNone: lblStatus.Text   := 'Mode: None';
