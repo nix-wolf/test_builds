@@ -6,8 +6,11 @@ uses System.SysUtils;
 
 type
   TuNetworkRole = (nrNone, nrClient, nrServer, nrHub);
-  TuPacketFlag = (pfCHAT, pfVEWLF, pfSES, pfJOIN, pfUPD, pfHTB, pfCLS, pfKIL, pfSHFT);
+  TuPacketFlag = (pfCHAT, pfVEWLF, pfSES, pfJOIN, pfUPD, pfHTB, pfCLS, pfKIL,
+    pfSHFT);
   TuNetProtocol = (npUDP, npTCP);
+
+
 
   TuGameSession = record
     FHostIP: String;

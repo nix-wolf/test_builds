@@ -54,7 +54,9 @@ begin
 
 end;
 
-procedure TuNetworkDispatcher.Register(aFlag: TuPacketFlag; aProto: TuNetProtocol; aRoles: TArray<TuNetworkRole>; aRoutines: TArray<TuPacketRoutine>);
+procedure TuNetworkDispatcher.Register(aFlag: TuPacketFlag;
+  aProto: TuNetProtocol; aRoles: TArray<TuNetworkRole>;
+  aRoutines: TArray<TuPacketRoutine>);
 var
   aHandler: TuMultiRoleHandler;
   i: Integer;
@@ -64,6 +66,7 @@ begin
     aHandler.AddRole(aRoles[i], aRoutines[i]);
 
 //  FHandlers.AddOrSetValue(TuDispatchKey.Create(aFlag, aProto), Handler);
+
 end;
 
 procedure TuNetworkDispatcher.SetupHandler(aFlag: TuPacketFlag;

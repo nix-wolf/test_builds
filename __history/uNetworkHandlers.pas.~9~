@@ -92,7 +92,7 @@ begin
    );
 
    Dispatcher.Register(pfHTB,
-      [npUDP],
+      [npUDaP],
       [nrNone, nrClient, nrServer, nrHub],
       [
          procedure(const aP: TuPacket) begin NoneHTBHandler(aP); end,
@@ -103,7 +103,7 @@ begin
    );
 
    Dispatcher.Register(pfCHAT,
-      [npTCP],
+      [npTCaP],
       [nrNone, nrClient, nrServer, nrHub],
       [
          procedure(const aP: TuPacket) begin ClientCHATHandler(aP); end,
@@ -113,7 +113,7 @@ begin
    );
 
    Dispatcher.Register(pfSES,
-      [npTCP],
+      [npTCaP],
       [nrNone, nrClient, nrServer, nrHub],
       [
          procedure(const aP: TuPacket) begin NoneSESHandler(aP); end,
@@ -123,7 +123,7 @@ begin
       ]
    );
    Dispatcher.Register(pfJOIN,
-      [npTCP],
+      [npTCaP],
       [nrClient, nrServer],
       [
          procedure(const aP: TuPacket) begin ClientJOINHandler(aP); end,
@@ -131,17 +131,17 @@ begin
       ]
    );
 
-   Dispatcher.Register(pfUPD,
-      [npTCP],
+   Dispatcher.Register(pfUaPD,
+      [npTCaP],
       [nrClient, nrServer],
       [
-         procedure(const aP: TuPacket) begin ClientUPDHandler(aP); end,
-         procedure(const aP: TuPacket) begin ServerUPDHandler(aP); end
+         procedure(const aP: TuPacket) begin ClientUaPDHandler(aP); end,
+         procedure(const aP: TuPacket) begin ServerUaPDHandler(aP); end
       ]
    );
 
    Dispatcher.Register(pfCLS,
-      [npUDP, npTCP],
+      [npUDaP, npTCaP],
       [nrNone, nrClient, nrServer, nrHub],
       [
          procedure(const aP: TuPacket) begin NoneCLSHandler(aP); end,
@@ -152,7 +152,7 @@ begin
    );
 
    Dispatcher.Register(pfKIL,
-      [npUDP, npTCP],
+      [npUDaP, npTCaP],
       [nrNone, nrClient, nrServer, nrHub],
       [
          procedure(const aP: TuPacket) begin NoneKILHandler(aP); end,
@@ -162,7 +162,7 @@ begin
    );
 
    Dispatcher.Register(pfSHFT,
-      [npUDP, npTCP],
+      [npUDaP, npTCaP],
       [nrClient, nrServer, nrHub],
       [
          procedure(const aP: TuPacket) begin ClientSHFTHandler(aP); end,
@@ -179,112 +179,13 @@ end;
 
 { TuNetworkHandler }
 
-///////////////////////////////////////////////////////////////////////////////
-//// pfVEWLF HANDLERS::
-///////////////////////////////////////////////////////////////////////////////
-
 procedure TuNetworkHandler.NoneVEWLFHandler(const aP: TuPacket);
 begin
 
 end;
 
-procedure TuNetworkHandler.HubVEWLFHandler(const aP: TuPacket);
-begin
-
-end;
-
-///////////////////////////////////////////////////////////////////////////////
-//// pfHTB HANDLERS::
-///////////////////////////////////////////////////////////////////////////////
-
-procedure TuNetworkHandler.ClientHTBHandler(const aP: TuPacket);
-begin
-
-end;
-
-procedure TuNetworkHandler.ServerHTBHandler(const aP: TuPacket);
-begin
-
-end;
-
-procedure TuNetworkHandler.HubHTBHandler(const aP: TuPacket);
-begin
-
-end;
-
-
-///////////////////////////////////////////////////////////////////////////////
-//// pfCHAT HANDLERS::
-///////////////////////////////////////////////////////////////////////////////
 
 procedure TuNetworkHandler.ClientCHATHandler(const aP: TuPacket);
-begin
-
-end;
-
-procedure TuNetworkHandler.HubCHATHandler(const aP: TuPacket);
-begin
-
-end;
-
-procedure TuNetworkHandler.ServerCHATHandler(const aP: TuPacket);
-begin
-
-end;
-
-
-///////////////////////////////////////////////////////////////////////////////
-//// pfSES HANDLERS::
-///////////////////////////////////////////////////////////////////////////////
-
-procedure TuNetworkHandler.ClientSESHandler(const aP: TuPacket);
-begin
-
-end;
-
-procedure TuNetworkHandler.ServerSESHandler(const aP: TuPacket);
-begin
-
-end;
-
-procedure TuNetworkHandler.HubSESHandler(const aP: TuPacket);
-begin
-
-end;
-
-///////////////////////////////////////////////////////////////////////////////
-//// pfJOIN HANDLERS::
-///////////////////////////////////////////////////////////////////////////////
-
-procedure TuNetworkHandler.ClientJOINHandler(const aP: TuPacket);
-begin
-
-end;
-
-procedure TuNetworkHandler.ServerJOINHandle(const aP: TuPacket);
-begin
-
-end;
-
-///////////////////////////////////////////////////////////////////////////////
-//// pfUPD HANDLERS::
-///////////////////////////////////////////////////////////////////////////////
-
-procedure TuNetworkHandler.ClientUPDHandler(const aP: TuPacket);
-begin
-
-end;
-
-procedure TuNetworkHandler.ServerUPDHandler(const aP: TuPacket);
-begin
-
-end;
-
-///////////////////////////////////////////////////////////////////////////////
-//// pfCLS HANDLERS::
-///////////////////////////////////////////////////////////////////////////////
-
-procedure TuNetworkHandler.NoneCLSHandler(const aP: TuPacket);
 begin
 
 end;
@@ -294,7 +195,32 @@ begin
 
 end;
 
-procedure TuNetworkHandler.ServerCLSHandler(const aP: TuPacket);
+procedure TuNetworkHandler.ClientHTBHandler(const aP: TuPacket);
+begin
+
+end;
+
+procedure TuNetworkHandler.ClientJOINHandler(const aP: TuPacket);
+begin
+
+end;
+
+procedure TuNetworkHandler.ClientSESHandler(const aP: TuPacket);
+begin
+
+end;
+
+procedure TuNetworkHandler.ClientSHFTHandler(const aP: TuPacket);
+begin
+
+end;
+
+procedure TuNetworkHandler.ClientUPDHandler(const aP: TuPacket);
+begin
+
+end;
+
+procedure TuNetworkHandler.HubCHATHandler(const aP: TuPacket);
 begin
 
 end;
@@ -304,10 +230,76 @@ begin
 
 end;
 
+procedure TuNetworkHandler.HubHTBHandler(const aP: TuPacket);
+begin
 
-///////////////////////////////////////////////////////////////////////////////
-//// pfKIL HANDLERS::
-///////////////////////////////////////////////////////////////////////////////
+end;
+
+procedure TuNetworkHandler.HubSESHandler(const aP: TuPacket);
+begin
+
+end;
+
+procedure TuNetworkHandler.HubSHFTHandler(const aP: TuPacket);
+begin
+
+end;
+
+procedure TuNetworkHandler.HubVEWLFHandler(const aP: TuPacket);
+begin
+
+end;
+
+procedure TuNetworkHandler.NoneCHATHandler(const aP: TuPacket);
+begin
+
+end;
+
+procedure TuNetworkHandler.NoneHTBHandler(const aP: TuPacket);
+begin
+
+end;
+
+procedure TuNetworkHandler.NoneSESHandler(const aP: TuPacket);
+begin
+
+end;
+
+procedure TuNetworkHandler.ServerCHATHandler(const aP: TuPacket);
+begin
+
+end;
+
+procedure TuNetworkHandler.ServerHTBHandler(const aP: TuPacket);
+begin
+
+end;
+
+procedure TuNetworkHandler.ServerJOINHandle(const aP: TuPacket);
+begin
+
+end;
+
+procedure TuNetworkHandler.ServerSESHandler(const aP: TuPacket);
+begin
+
+end;
+
+procedure TuNetworkHandler.ServerUPDHandler(const aP: TuPacket);
+begin
+
+end;
+
+procedure TuNetworkHandler.NoneCLSHandler(const aP: TuPacket);
+begin
+
+end;
+
+procedure TuNetworkHandler.ServerCLSHandler(const aP: TuPacket);
+begin
+
+end;
+
 
 
 procedure TuNetworkHandler.NoneKILHandler(const aP: TuPacket);
@@ -330,26 +322,12 @@ begin
 
 end;
 
-///////////////////////////////////////////////////////////////////////////////
-//// pfSHFT HANDLERS::
-///////////////////////////////////////////////////////////////////////////////
 
-
-procedure TuNetworkHandler.ClientSHFTHandler(const aP: TuPacket);
-begin
-
-end;
 
 procedure TuNetworkHandler.ServerSHFTHandler(const aP: TuPacket);
 begin
 
 end;
-
-procedure TuNetworkHandler.HubSHFTHandler(const aP: TuPacket);
-begin
-
-end;
-
 
 end.
 
