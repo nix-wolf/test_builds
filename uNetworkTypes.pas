@@ -18,7 +18,7 @@ type
     FLastSeen    : TDateTime;
 
     function  ToNetworkString: String;
-    procedure FromNetworkString(AData: String);
+    procedure FromNetworkString(aData: String);
   end;
 
   TuPacket = record
@@ -51,18 +51,19 @@ implementation
 
 { TuGameSession }
 
-procedure TuGameSession.FromNetworkString(AData: String);
+procedure TuGameSession.FromNetworkString(aData: String);
 var
    aNetworkObject: TArray<String>;
 begin
-   aNetworkObject := AData.Split([',']);
+   aNetworkObject := aData.Split([',']);
    if Length(aNetworkObject) >= 5 then begin
-      FHostIP := aNetworkObject[0];
-      FHostName := aNetworkObject[1];
-      FGameType := aNetworkObject[2];
+      FHostIP      := aNetworkObject[0];
+      FHostName    := aNetworkObject[1];
+      FGameType    := aNetworkObject[2];
       FPlayerCount := StrToIntDef(aNetworkObject[3], 0);
-      FMaxPlayers := StrToIntDef(aNetworkObject[4], 0);
+      FMaxPlayers  := StrToIntDef(aNetworkObject[4], 0);
    end; {IF}
+   //session data isnt returned yet.
 end;
 
 function TuGameSession.ToNetworkString: String;
@@ -100,7 +101,7 @@ end;
 class function TuDispatchKey.Create(aFlag: TuPacketFlag;
    aProtocol: TuNetProtocol): TuDispatchKey;
 begin
-   Result.FFlag := aFlag;
+   Result.FFlag     := aFlag;
    Result.FProtocol := aProtocol;
 end;
 

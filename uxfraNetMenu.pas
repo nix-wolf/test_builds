@@ -3,55 +3,57 @@ unit uxfraNetMenu;
 interface
 
 uses
-  Winapi.Windows,
-  System.SysUtils,
-  System.Types,
-  System.UITypes,
-  System.Classes,
-  System.Variants,
-  uNetManager,
-  uNetworkTypes,
-  FMX.Types,
-  FMX.Graphics,
-  FMX.Controls,
-  FMX.Forms,
-  FMX.Dialogs,
-  FMX.StdCtrls,
-  FMX.Memo.Types,
-  FMX.Edit,
-  FMX.Controls.Presentation,
-  FMX.ScrollBox,
-  FMX.Memo,
-  FMX.Header,
-  FMX.Layouts,
-  FMX.ListBox;
+   Winapi.Windows,
+   System.SysUtils,
+   System.Types,
+   System.UITypes,
+   System.Classes,
+   System.Variants,
+   uNetManager,
+   uNetworkTypes,
+   FMX.Types,
+   FMX.Graphics,
+   FMX.Controls,
+   FMX.Forms,
+   FMX.Dialogs,
+   FMX.StdCtrls,
+   FMX.Memo.Types,
+   FMX.Edit,
+   FMX.Controls.Presentation,
+   FMX.ScrollBox,
+   FMX.Memo,
+   FMX.Header,
+   FMX.Layouts,
+   FMX.ListBox;
 
 type
-  TxfraNetMenu = class(TFrame)
-    lstGames: TListBox;
-    lLayout: TLayout;
-    memInfo: TMemo;
-    btnJoinGame: TButton;
-    btnHostGame: TButton;
-    edtChat: TEdit;
-    lblStatus: TLabel;
-    procedure btnHostGameClick(Sender: TObject);
-    procedure btnJoinGameClick(Sender: TObject);
-    procedure edtChatKeyPress(Sender: TObject; var Key: Word;
-      var KeyChar: WideChar; Shift: TShiftState);
+   TxfraNetMenu = class(TFrame)
+      lstGames    : TListBox;
+      lLayout     : TLayout;
+      memInfo     : TMemo;
+      btnJoinGame : TButton;
+      btnHostGame : TButton;
+      edtChat     : TEdit;
+      lblStatus   : TLabel;
+      procedure btnHostGameClick(Sender     : TObject);
+      procedure btnJoinGameClick(Sender     : TObject);
+      procedure edtChatKeyPress(Sender      : TObject;
+                                var Key     : Word;
+                                var KeyChar : WideChar;
+                                Shift       : TShiftState);
 
-  private
-    FNetworkManager: TNetManager;
-    procedure HandleNetworkLogging(const aMsg: String);
-    procedure HandleRoleChange(const aRole: TuNetworkRole);
-    procedure UpdateRoleUI(const aRole: TuNetworkRole);
-  public
-    constructor Create(aOwner: TComponent); override;
-    destructor Destroy; override;
-  end;
+      private
+         FNetworkManager: TNetManager;
+         procedure HandleNetworkLogging(const aMsg: String);
+         procedure HandleRoleChange(const aRole: TuNetworkRole);
+         procedure UpdateRoleUI(const aRole: TuNetworkRole);
+      public
+         constructor Create(aOwner: TComponent); override;
+         destructor Destroy; override;
+   end;
 
 var
-  xfraNetMenu: TxfraNetMenu;
+   xfraNetMenu: TxfraNetMenu;
 
 implementation
 
@@ -69,54 +71,57 @@ end;
 
 constructor TxfraNetMenu.Create(aOwner: TComponent);
 begin
-  inherited Create(aOwner);
-  FNetworkManager := TNetManager.Get;
-  FNetworkManager.OnLog := HandleNetworkLogging;
-  FNetworkManager.OnRoleChange := HandleRoleChange;
-  memInfo.Lines.Add('Network Frame Initalized...');
-  edtChat.OnKeyDown := edtChatKeyPress;
+   inherited Create(aOwner);
+   FNetworkManager              := TNetManager.Get;
+   FNetworkManager.OnLog        := HandleNetworkLogging;
+   FNetworkManager.OnRoleChange := HandleRoleChange;
+   edtChat.OnKeyDown            := edtChatKeyPress;
+   memInfo.Lines.Add('Network Frame Initalized...');
 
-  FNetworkManager.Start;
+   FNetworkManager.Start;
 end;
 
 destructor TxfraNetMenu.Destroy;
 begin
-  inherited Destroy;
+   inherited Destroy;
 end;
 
 
-procedure TxfraNetMenu.edtChatKeyPress(Sender: TObject; var Key: Word; var KeyChar: WideChar; Shift: TShiftState);
+procedure TxfraNetMenu.edtChatKeyPress(Sender      : TObject;
+                                       var Key     : Word;
+                                       var KeyChar : WideChar;
+                                       Shift       : TShiftState);
 begin
-  if Key = VK_RETURN then begin
-    if Trim(edtChat.Text) <> '' then begin
+   if Key = VK_RETURN then begin
+      if Trim(edtChat.Text) <> '' then begin
       //todo need to store username somewhere
-//      FNetworkManager.SendChatMessage('aUserName', edtChat.Text);
-      edtChat.Text := '';
-      Key := 0;
-    end; {IF}
-  end; {IF}
+//         FNetworkManager.SendChatMessage('aUserName', edtChat.Text);
+         edtChat.Text := '';
+         Key := 0;
+      end; {IF}
+   end; {IF}
 end;
 
 procedure TxfraNetMenu.HandleNetworkLogging(const aMsg: String);
 begin
-  var aString := FormatDateTime('hh:nn:ss', Now);
-  memInfo.Lines.Add(Format('[%s]::> %s', [aString, aMsg]));
-  memInfo.SelStart := Length(memInfo.Text);
+   var aString      := FormatDateTime('hh:nn:ss', Now);
+   memInfo.Lines.Add(Format('[%s]::> %s', [aString, aMsg]));
+   memInfo.SelStart := Length(memInfo.Text);
 end;
 
 procedure TxfraNetMenu.HandleRoleChange(const aRole: TuNetworkRole);
 begin
-  UpdateRoleUI(aRole);
+   UpdateRoleUI(aRole);
 end;
 
 procedure TxfraNetMenu.UpdateRoleUI(const aRole: TuNetworkRole);
 begin
-  case aRole of
-    nrNone: lblStatus.Text   := 'Mode: None';
-    nrClient: lblStatus.Text := 'Mode: Client';
-    nrServer: lblStatus.Text := 'Mode: Server';
-    nrHub: lblStatus.Text := 'Mode: Hub';
-  end;
+   case aRole of
+      nrNone   : lblStatus.Text := 'Mode: None';
+      nrClient : lblStatus.Text := 'Mode: Client';
+      nrServer : lblStatus.Text := 'Mode: Server';
+      nrHub    : lblStatus.Text := 'Mode: Hub';
+   end; {CASE}
 end;
 
 end.
