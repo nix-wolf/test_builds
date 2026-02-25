@@ -1,3 +1,3 @@
-__recovery/
-__history/
-Win32/
+__recovery\
+__history\
+Win32\
