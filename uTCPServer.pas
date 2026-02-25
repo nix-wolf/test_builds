@@ -3,72 +3,47 @@ unit uTCPServer;
 interface
 
 uses
-  Winapi.Winsock2,
-  System.Net.Socket,
-  System.SysUtils,
-  System.Classes,
-  System.Generics.Collections,
-  uReadThread;
+   Winapi.Winsock2,
+   System.Net.Socket,
+   System.SysUtils,
+   System.Classes,
+   System.Generics.Collections,
+   uNetworkTypes,
+   uReadThread;
 
 type
-  TuTCPServer = class;
+   TuTCPServer     = class;
 
-  TOnDataReceived = procedure(const aIP, aData: String) of Object;
+   TuTCPServer = class(TObject)
+      private
+         FListener     : TSocket;
+         FClients      : TObjectList<TuTCPRemoteClient>;
+         FActive       : Boolean;
 
-  TuTCPRemoteClient = class
-    private
-      FOwner: TObject;
-      FSocket: TSocket;
-      FReadThread: TuReadThread;
-      FIP: String;
-      FOnData: TOnDataReceived;
-    public
-      constructor Create(aOwner: TObject; aSocket: TSocket);
-      destructor Destroy; override;
+         FOnMsg        : TOnTCPMessage;
+         FOnConnect    : TClientEvent;
+         FOnDisconnect : TClientEvent;
+         FOnLog        : TUIEvent;
 
-      procedure Send(const aMsg: String);
-      procedure OnLine(const aIP, aMsg: String);
-      procedure Disconnect;
+         procedure LogToUI(const aMsg: String);
+         procedure Listen;
+      public
+         constructor Create;
+         destructor Destroy; override;
 
-      property IP: String read FIP;
-      property Socket: TSocket read FSocket;
-      property OnDataReceived: TOnDataReceived read FOnData write FOnData;
-  end;
+         procedure OnClientMessage(aClient: TuTCPRemoteClient; const aMsg: String);
+         procedure OnClientDisconnect(aClient: TuTCPRemoteClient);
 
-  TOnClientMessage =
-    procedure(aClient: TuTCPRemoteClient; const aMsg: String) of Object;
-  TClientEvent = procedure(aClient: TuTCPRemoteClient) of Object;
-  TUIEvent = procedure(const aMsg: String) of Object;
+         procedure Start(aPort: Integer);
+         procedure Stop;
+         procedure Broadcast(const aMsg: String);
 
-  TuTCPServer = class(TObject)
-    private
-      FListener: TSocket;
-      FClients: TObjectList<TuTCPRemoteClient>;
-      FActive: Boolean;
-      FOnMsg: TOnClientMessage;
-      FOnConnect: TClientEvent;
-      FOnDisconnect: TClientEvent;
+         property OnMessage      : TOnTCPMessage    read FOnMsg        write FOnMsg;
+         property OnConnected    : TClientEvent     read FOnConnect    write FOnConnect;
+         property OnDisconnected : TClientEvent     read FOnDisconnect write FOnDisconnect;
+         property OnLog          : TUIEvent         read FOnLog        write FOnLog;
 
-      FOnLog: TUIEvent;
-      procedure LogToUI(const aMsg: String);
-
-      procedure Listen;
-    public
-      constructor Create;
-      destructor Destroy; override;
-
-      procedure OnClientMessage(aClient: TuTCPRemoteClient; const aMsg: String);
-      procedure OnClientDisconnect(aClient: TuTCPRemoteClient);
-
-      procedure Start(aPort: Integer);
-      procedure Stop;
-      procedure Broadcast(const aMsg: String);
-      property OnMessage: TOnClientMessage read FOnMsg write FOnMsg;
-      property OnConnected: TClientEvent read FOnConnect write FOnConnect;
-      property OnDisconnected: TClientEvent read FOnDisconnect write FOnDisconnect;
-      property OnLog: TUIEvent read FOnLog write FOnLog;
-
-  end;
+   end;
 implementation
 
 { TuTCPServer }
@@ -79,8 +54,8 @@ implementation
 
 constructor TuTCPServer.Create;
 begin
-  FClients := TObjectList<TuTCPRemoteClient>.Create;
-  FActive := False;
+   FClients := TObjectList<TuTCPRemoteClient>.Create;
+   FActive  := False;
 end;
 
 procedure TuTCPServer.Start(aPort: Integer);
@@ -94,7 +69,7 @@ begin
   if aListener = INVALID_SOCKET then
     raise Exception.Create('Winsock socket creation failed: ' + IntToStr(WSAGetLastError));
 
-//  FListener := TSocket.Create(aListener);
+
 
   aV := 1;
   setsockopt(aListener, SOL_SOCKET, SO_REUSEADDR, @aV, SizeOf(aV));
@@ -110,6 +85,7 @@ begin
     raise Exception.Create('Manual TCP Listen Failed: ' + IntToStr(WSAGetLastError));
 
   LogToUI('TCP Hub (Hybrid) Listening on ' + IntToStr(aPort + 1));
+
 
   FActive := True;
 //  TThread.CreateAnonymousThread(Listen).Start;
@@ -197,65 +173,5 @@ begin
   Stop;
   FClients.Free;
 end;
-
-
-{ TuTCPRemoteClient }
-
-///////////////////////////////////////////////////////////////////////////////
-//// Construction/Initalization
-///////////////////////////////////////////////////////////////////////////////
-
-constructor TuTCPRemoteClient.Create(aOwner: TObject; aSocket: TSocket);
-begin
-  FOwner := aOwner;
-  FSocket := aSocket;
-
-  //not sure about this
-  try
-    FIP := FSocket.Endpoint.Address.Address;
-  except
-    FIP := '0.0.0.0';
-  end;
-
-  FReadThread := TuReadThread.Create(FSocket, OnLine, Disconnect);
-  FReadThread.Start;
-end;
-
-///////////////////////////////////////////////////////////////////////////////
-//// Other
-///////////////////////////////////////////////////////////////////////////////
-
-procedure TuTCPRemoteClient.Send(const aMsg: String);
-var
-  aBytes: TBytes;
-begin
-  if TSocketState.Connected in FSocket.State then begin
-    aBytes := TEncoding.UTF8.GetBytes(aMsg + #10);
-    FSocket.Send(aBytes, 0, Length(aBytes));
-  end; {IF}
-end;
-
-procedure TuTCPRemoteClient.OnLine(const aIP, aMsg: String);
-begin
-  if Assigned(FOwner) then
-    (FOwner as TuTCPServer).OnClientMessage(Self, aMsg);
-end;
-
-///////////////////////////////////////////////////////////////////////////////
-//// Deconstruction
-///////////////////////////////////////////////////////////////////////////////
-
-procedure TuTCPRemoteClient.Disconnect;
-begin
-  if Assigned(FOwner) then
-    TuTCPServer(FOwner).OnClientDisconnect(Self);
-end;
-
-destructor TuTCPRemoteClient.Destroy;
-begin
-  if Assigned(FSocket) then FSocket.Close;
-  inherited;
-end;
-
 
 end.

@@ -233,8 +233,8 @@ procedure TNetManager.OnUDPMessage(const aIP, aMsg: String);
    var
       aPacket: TuPacket;
 begin
-   if aIP = FIP then Exit;
-   LogToUI('Message Received UDP');
+   LogToUI('Message Received UDP::' + aIP + '@:: ' + aMsg);
+   if (aIP = FIP) or (aIP = '127.0.0.1') then Exit;
    aPacket.FromString(aMsg);
    aPacket.FIP := aIP;
 

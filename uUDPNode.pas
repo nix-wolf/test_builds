@@ -59,6 +59,8 @@ begin
     Winapi.Winsock2.setsockopt(FSocket.Handle, SOL_SOCKET, SO_BROADCAST, @aV, SizeOf(aV));
     FActive := True;
 
+    //This will be upgraded to a winsock in the top level via my own class
+
     FReadThread := TuReadThread.Create(FSocket, OnDataRecieved, Disconnect);
     FReadThread.Start;
   except

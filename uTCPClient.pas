@@ -7,17 +7,17 @@ uses
   System.SysUtils,
   System.Classes,
   System.Threading,
+  uNetworkTypes,
   uReadThread;
 
 type
-  TOnDataReceived = procedure(const aIP, aData: String) of Object;
 
   TuTCPClient = class
     private
-      FSocket: TSocket;
-      FReadThread: TuReadThread;
-      FOnData: TOnDataReceived;
-      FConnected: Boolean;
+      FSocket     : TSocket;
+      FReadThread : TuReadThread;
+      FOnData     : TOnDataReceived;
+      FConnected  : Boolean;
     public
       constructor Create;
       destructor Destroy; override;
@@ -25,8 +25,8 @@ type
       procedure Disconnect;
       procedure Send(const aMsg: String);
 
-      property OnDataReceived: TOnDataReceived read FOnData write FOnData;
-      property Connected: Boolean read FConnected;
+      property OnDataReceived : TOnDataReceived read FOnData write FOnData;
+      property Connected      : Boolean         read FConnected;
   end;
 
 implementation
@@ -39,12 +39,13 @@ implementation
 
 constructor TuTCPClient.Create;
 begin
-  inherited;
-  FConnected := False;
+   inherited;
+   FConnected := False;
 end;
 
 procedure TuTCPClient.Connect(const aIP: String; aPort: Integer);
 begin
+   //upgrade this to winsock via new class
   FSocket := TSocket.Create(TSocketType.TCP);
   FSocket.Connect('', aIP, '', aPort);
   FConnected := True;

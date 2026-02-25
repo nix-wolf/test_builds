@@ -1,3 +1,0 @@
-__recovery\
-__history\
-Win32\
