@@ -16,7 +16,8 @@ uses
   uUDPNode in 'uUDPNode.pas',
   uReadThread in 'uReadThread.pas',
   uNetworkDispatcher in 'uNetworkDispatcher.pas',
-  uNetworkHandlers in 'uNetworkHandlers.pas';
+  uNetworkHandlers in 'uNetworkHandlers.pas',
+  uSocket in 'uSocket.pas';
 
 {}
 

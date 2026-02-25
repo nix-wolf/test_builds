@@ -171,6 +171,7 @@
         <DCCReference Include="uReadThread.pas"/>
         <DCCReference Include="uNetworkDispatcher.pas"/>
         <DCCReference Include="uNetworkHandlers.pas"/>
+        <DCCReference Include="uSocket.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

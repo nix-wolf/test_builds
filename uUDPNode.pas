@@ -3,19 +3,19 @@ unit uUDPNode;
 interface
 
 uses
-  Winapi.Winsock2,
-  System.Net.Socket,
-  System.SysUtils,
-  System.Classes,
-  System.Threading,
-  uReadThread;
+   uReadThread,
+   uNetworkTypes,
+   uSocket,
+   Winapi.Winsock2,
+   System.SysUtils,
+   System.Classes;
 
 type
   TOnUDPData = procedure(const aIP, aMsg: String) of Object;
 
   TuUDPNode = class
     private
-      FSocket: TSocket;
+      FSocket: TuSocket;
       FReadThread: TuReadThread;
       FActive: Boolean;
       FOnData: TOnUDPData;
@@ -50,24 +50,21 @@ procedure TuUDPNode.Start(const aPort: Integer);
 begin
   if FActive then Exit;
 
-  FSocket := TSocket.Create(TSocketType.UDP);
+  FSocket := TuSocket.Create(npUDP, aPort);
   try
 //    FSocket.Connect('', '0.0.0.0', '', aPort);
     var AV := 1;
-    Winapi.Winsock2.setsockopt(FSocket.Handle, SOL_SOCKET, SO_REUSEADDR, @aV, SizeOf(aV));
-    FSocket.Bind(TNetEndpoint.Create(TIPAddress.Any, aPort));
-    Winapi.Winsock2.setsockopt(FSocket.Handle, SOL_SOCKET, SO_BROADCAST, @aV, SizeOf(aV));
     FActive := True;
 
     //This will be upgraded to a winsock in the top level via my own class
 
-    FReadThread := TuReadThread.Create(FSocket, OnDataRecieved, Disconnect);
+//    FReadThread := TuReadThread.Create(FSocket, OnDataRecieved, Disconnect);
     FReadThread.Start;
   except
     on E: Exception do begin
-      FActive := False;
-      FSocket.Free;
-      FSocket := nil;
+//      FActive := False;
+//      FSocket.Free;
+//      FSocket := nil;
       raise Exception.Create('UDP Bind Failed: ' + E.Message);
     end;
   end;

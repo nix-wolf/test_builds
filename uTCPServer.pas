@@ -69,7 +69,7 @@ begin
   if aListener = INVALID_SOCKET then
     raise Exception.Create('Winsock socket creation failed: ' + IntToStr(WSAGetLastError));
 
-
+   //listener will become my own socket class
 
   aV := 1;
   setsockopt(aListener, SOL_SOCKET, SO_REUSEADDR, @aV, SizeOf(aV));
@@ -79,10 +79,10 @@ begin
   aAddr.sin_addr.S_addr := INADDR_ANY;
 
   if Winapi.Winsock2.bind(aListener, sockaddr(aAddr), SizeOf(aAddr)) <> 0 then
-    raise Exception.Create('Manual TCP Bind Failed: ' + IntToStr(WSAGetLastError));
+    raise Exception.Create('Bind Failed: ' + IntToStr(WSAGetLastError));
 
   if Winapi.Winsock2.listen(aListener, SOMAXCONN) <> 0 then
-    raise Exception.Create('Manual TCP Listen Failed: ' + IntToStr(WSAGetLastError));
+    raise Exception.Create('Listen Failed: ' + IntToStr(WSAGetLastError));
 
   LogToUI('TCP Hub (Hybrid) Listening on ' + IntToStr(aPort + 1));
 
