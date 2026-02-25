@@ -250,7 +250,11 @@ begin
    if not Assigned(FTCPClient) then
       FTCPClient := TuTCPClient.Create;
 
-//   FTCPClient.Socket
+      {
+         Needs to be able to set the onconnect and ondisconnect in the client
+         probably should do that also for the udp connection aswell not sure
+         if there is any other life cycle methods that need to be set
+      }
 
    FTCPClient.Connect(aIP, aPort);
 end;
@@ -275,6 +279,12 @@ procedure TNetManager.StartHub(const aPort: Integer);
 begin
    LogToUI('Starting Lobby Server...');
    FTCPServer := TuTCPServer.Create;
+
+   {
+      oh i have these set? i wonder why they never where called
+      should have been called on the server when the client connected?
+      i have a powershell netstat output that claimed is was ESTABLISHED
+   }
 
    FTCPServer.OnConnected := OnConnected;
    FTCPServer.OnDisconnected := OnDisconnected;
