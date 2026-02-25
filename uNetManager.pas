@@ -20,46 +20,43 @@ type
   TNetManager = class
     private
       class var FInstance: TNetManager;
-      FUDP: TuUDPNode;
-      FTCPClient: TuTCPClient;
-      FTCPServer: TuTCPServer;
-      FBroadCastTimer: TTimer;
-      FDispatcher: TDictionary<TuDispatchKey, TuPacketHandler>;
-      FActiveSessions: TList<TuGameSession>;
-      FRole: TuNetworkRole;
-      FIP: String;
+      FUDP               : TuUDPNode;
+      FTCPClient         : TuTCPClient;
+      FTCPServer         : TuTCPServer;
+      FBroadCastTimer    : TTimer;
+      FDispatcher        : TDictionary<TuDispatchKey, TuPacketHandler>;
+      FActiveSessions    : TList<TuGameSession>;
+      FRole              : TuNetworkRole;
+      FIP                : String;
       //should be pulled for ini file?
-      FServerPort: Integer;
+      FServerPort        : Integer;
       //can this be moved into discovery of just doing the discovery in a loop
-      FDiscoveryAttempts: Integer;
-      FHubIP: String;
-      FGameName: String;
+      FDiscoveryAttempts : Integer;
+      FHubIP             : String;
+      FGameName          : String;
 
-      FOnLog: TUIEvent<String>;
-      FOnRoleChange: TUIEvent<TuNetworkRole>;
+      FOnLog             : TUIEvent<String>;
+      FOnRoleChange      : TUIEvent<TuNetworkRole>;
 
       //timer functions
-      procedure OnBroadcastTimer(Sender: TObject);
-      procedure OnCleanUpTimer(Sender: TObject);
-
+      procedure OnBroadcastTimer    (Sender: TObject);
+      procedure OnCleanUpTimer      (Sender: TObject);
       //client functions
-      procedure CreateSession(const aSession: TuGameSession);
-      procedure OnConnect(Sender: TObject);
-      procedure OnDisconnect(Sender: TObject);
-      procedure OnTCPMessage(aSender: TuTCPClient; const aMsg: String);
-      procedure OnUDPMessage(const aIP, aMsg: String);
+      procedure CreateSession       (const aSession: TuGameSession);
+      procedure OnConnect           (Sender: TObject);
+      procedure OnDisconnect        (Sender: TObject);
+      procedure OnTCPMessage        (aSender: TuTCPClient; const aMsg: String);
+      procedure OnUDPMessage        (const aIP, aMsg: String);
       //server functions
-      procedure HandleCreateSession(const aMsg: String; aClient: TuTCPRemoteClient);
-      procedure OnConnected(aClient: TuTCPRemoteClient);
-      procedure OnDisconnected(aClient: TuTCPRemoteClient);
-      procedure OnServerTCPMessage(aClient: TuTCPRemoteClient; const aMsg: String);
-      procedure OnServerUDPMessage(const aIP, aMsg: String);
+      procedure HandleCreateSession (const aMsg: String; aClient: TuTCPRemoteClient);
+      procedure OnConnected         (aClient: TuTCPRemoteClient);
+      procedure OnDisconnected      (aClient: TuTCPRemoteClient);
+      procedure OnServerTCPMessage  (aClient: TuTCPRemoteClient; const aMsg: String);
+      procedure OnServerUDPMessage  (const aIP, aMsg: String);
 
-
-
-      procedure LogToUI(const aMsg: String);
+      procedure LogToUI             (const aMsg: String);
       procedure UpdateRoleToUI;
-      procedure UIEventCallback<T>(aEvent: TUIEvent<T>; aT: T);
+      procedure UIEventCallback<T>  (aEvent: TUIEvent<T>; aT: T);
 
       function GetLocalIP: string;
     public
@@ -69,13 +66,15 @@ type
       procedure StartHub(const aPort: Integer);
       procedure Connect(const aIP: String; const aPort: Integer);
 
-      class property UDP: TuUDPNode read FUDP;
-      class property TCPClient: TuTCPClient read FTCPClient;
-      class property TCPServer: TuTCPServer read FTCPServer;
-      class property OnLog: TUIEvent<String> read FOnLog write FOnLog;
-      class property OnRoleChange: TUIEvent<TuNetworkRole> read FOnRoleChange write FOnRoleChange;
+      procedure SendUDP();
 
-      class function Get: TNetManager;
+      class property UDP          : TuUDPNode read FUDP;
+      class property TCPClient    : TuTCPClient read FTCPClient;
+      class property TCPServer    : TuTCPServer read FTCPServer;
+      class property OnLog        : TUIEvent<String> read FOnLog write FOnLog;
+      class property OnRoleChange : TUIEvent<TuNetworkRole> read FOnRoleChange write FOnRoleChange;
+      class property ServerPort   : Integer read FServerPort;
+      class function Get          : TNetManager;
       procedure Start;
   end;
 
@@ -207,6 +206,11 @@ end;
 procedure TNetManager.UpdateRoleToUI;
 begin
   UIEventCallback<TuNetworkRole>(FOnRoleChange, FRole);
+end;
+
+procedure TNetManager.SendUDP;
+begin
+
 end;
 
 ///////////////////////////////////////////////////////////////////////////////
