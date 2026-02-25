@@ -221,6 +221,7 @@ procedure TNetManager.OnTCPMessage(aSender: TuTCPRemoteClient; const aMsg: Strin
    var
       aPacket: TuPacket;
 begin
+   LogToUI('Message Received TCP::');
    if aSender.IP = FIP then Exit;
    aPacket.FromString(aMsg);
    aPacket.FIP := aSender.IP;
@@ -233,6 +234,7 @@ procedure TNetManager.OnUDPMessage(const aIP, aMsg: String);
       aPacket: TuPacket;
 begin
    if aIP = FIP then Exit;
+   LogToUI('Message Received UDP');
    aPacket.FromString(aMsg);
    aPacket.FIP := aIP;
 
@@ -247,12 +249,16 @@ procedure TNetManager.Connect(const aIP: String; const aPort: Integer);
 begin
    if not Assigned(FTCPClient) then
       FTCPClient := TuTCPClient.Create;
+
+//   FTCPClient.Socket
+
    FTCPClient.Connect(aIP, aPort);
 end;
 
 procedure TNetManager.OnConnect(Sender: TObject);
 begin
-   //not sure what to do here atm...
+   LogToUI('Connection Established');
+   //Record ServerIP somewhere maybe? if its needed
 end;
 
 procedure TNetManager.OnDisconnect(Sender: TObject);
@@ -282,11 +288,13 @@ procedure TNetManager.OnConnected(aClient: TuTCPRemoteClient);
 begin
    //store reference in appropriate place
    //log to ui, and send message to other connected (connected to lobby);
+   LogToUI('Client Connected to Lobby NEEDS INFORMATION HERE');
 end;
 
 procedure TNetManager.OnDisconnected(aClient: TuTCPRemoteClient);
 begin
    //remove references, notify other members of the lobby of disconnect
+   LogToUI('Client Disconnected NEEDS MORE INFORMATION HERE');
 end;
 
 ///////////////////////////////////////////////////////////////////////////////

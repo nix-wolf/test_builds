@@ -53,9 +53,11 @@ var
    aFlag    : TuPacketFlag;
    aKey     : TuDispatchKey;
    aHandler : TuMultiRoleHandler;
+   aFlagStr : String;
 begin
    try
-      aFlag := TRttiEnumerationType.GetValue<TuPacketFlag>(aPacket.FCommand);
+      aFlagStr := 'pf' + aPacket.FCommand;
+      aFlag := TRttiEnumerationType.GetValue<TuPacketFlag>(aFlagStr);
       aKey  := TuDispatchKey.Create(aFlag, aProtocol);
 
       if FHandlers.TryGetValue(aKey, aHandler) then
@@ -76,8 +78,10 @@ var
    i         : Integer;
 begin
    if Length(aRoles) <> Length(aRoutines) then
-      raise Exception.CreateFmt('Engine Wiring Error: Flag %s has %d roles but %d routines.',
-                                [TRttiEnumerationType.GetName<TuPacketFlag>(aFlag), Length(aRoles), Length(aRoutines)]);
+      raise Exception.CreateFmt(
+         'Engine Wiring Error: Flag %s has %d roles but %d routines.',
+         [TRttiEnumerationType.GetName<TuPacketFlag>(aFlag),
+         Length(aRoles), Length(aRoutines)]);
 
    aHandler := Default(TuMultiRoleHandler);
 

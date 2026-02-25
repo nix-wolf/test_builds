@@ -208,7 +208,7 @@ class procedure TuNetworkHandler.HubVEWLFHandler(const aP: TuPacket);
 begin
    with NetMgr do begin
       //may not work?
-      UDP.Send(aP.FData, aP.FIP, ServerPort);
+      UDP.Send(aP.Parse, aP.FIP, ServerPort);
    end;
 end;
 
@@ -333,6 +333,7 @@ end;
 //// pfSHFT HANDLERS::
 ///////////////////////////////////////////////////////////////////////////////
 
+//If there is no one left just kill yourself and be done with it...
 
 class procedure TuNetworkHandler.ClientSHFTHandler(const aP: TuPacket);
 begin

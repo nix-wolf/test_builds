@@ -95,7 +95,7 @@ end;
 
 function TuPacket.Parse: string;
 begin
-
+  Result := FCommand + '|' + FData;
 end;
 
 { TDispatchKey }
