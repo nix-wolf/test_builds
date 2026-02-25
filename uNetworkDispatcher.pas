@@ -3,36 +3,33 @@ unit uNetworkDispatcher;
 interface
 
 uses
-  System.Generics.Collections,
-  System.SysUtils,
-  uNetworkTypes;
+   System.Generics.Collections,
+   System.SysUtils,
+   System.Rtti,
+   uNetworkTypes;
 
 type
    TuNetworkDispatcher = class
       private
-         FHandlers: TDictionary<TuDispatchKey, TuPacketHandler>;
+         FHandlers: TDictionary<TuDispatchKey, TuMultiRoleHandler>;
       public
          constructor Create;
          destructor  Destroy; override;
 
-         procedure SetupHandler(aFlag     : TuPacketFlag;
-                                aProtocol : TuNetProtocol;
-                                aHandler  : TuPacketHandler);
-
-         procedure SetupUHandler(aFlag: TuPacketFlag; aHandler: TuPacketHandler);
-         procedure HandlePacket(const aPacket: TuPacket; aProtocol: TuNetProtocol);
-
-         //why is this blue?
-         procedure Register(aFlag     : TuPacketFlag;
-                            aProto    : TArray<TuNetProtocol>;
-                            aRoles    : TArray<TuNetworkRole>;
-                            aRoutines : TArray<TuPacketRoutine>);
+         procedure HandlePacket(const aPacket  : TuPacket;
+                                aProtocol      : TuNetProtocol;
+                                aCurrentRole   : TuNetworkRole);
+         procedure RegisterHandlers(aFlag      : TuPacketFlag;
+                                    aProtocols : TArray<TuNetProtocol>;
+                                    aRoles     : TArray<TuNetworkRole>;
+                                    aRoutines  : TArray<TuPacketRoutine>);
    end;
 
 implementation
 
 uses
    uNetworkHandlers;
+
 { TuNetworkDispatcher }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -41,55 +38,54 @@ uses
 
 constructor TuNetworkDispatcher.Create;
 begin
-   FHandlers := TDictionary<TuDispatchKey, TuPacketHandler>.Create;
+   FHandlers := TDictionary<TuDispatchKey, TuMultiRoleHandler>.Create;
+   TuNetworkHandler.Setup(Self);
 end;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// Other
 ///////////////////////////////////////////////////////////////////////////////
 
-procedure TuNetworkDispatcher.HandlePacket(const aPacket   : TuPacket;
-                                                 aProtocol : TuNetProtocol);
+procedure TuNetworkDispatcher.HandlePacket(const aPacket      : TuPacket;
+                                                 aProtocol    : TuNetProtocol;
+                                                 aCurrentRole : TuNetworkRole);
 var
+   aFlag    : TuPacketFlag;
    aKey     : TuDispatchKey;
-   aHandler : TuPacketHandler;
+   aHandler : TuMultiRoleHandler;
 begin
-  //get flag
-  //get handler
-  //call handler with arguments properly
+   try
+      aFlag := TRttiEnumerationType.GetValue<TuPacketFlag>(aPacket.FCommand);
+      aKey  := TuDispatchKey.Create(aFlag, aProtocol);
 
+      if FHandlers.TryGetValue(aKey, aHandler) then
+         aHandler.Execute(aPacket, aCurrentRole);
+   except
+      on E: Exception do
+        //probably want to log this, but need a way to push it back to the ui?
+   end;
 end;
 
-procedure TuNetworkDispatcher.Register(
-   aFlag     : TuPacketFlag;
-   aProto    : TArray<TuNetProtocol>;
-   aRoles    : TArray<TuNetworkRole>;
-   aRoutines : TArray<TuPacketRoutine>);
+procedure TuNetworkDispatcher.RegisterHandlers(aFlag      : TuPacketFlag;
+                                               aProtocols : TArray<TuNetProtocol>;
+                                               aRoles     : TArray<TuNetworkRole>;
+                                               aRoutines  : TArray<TuPacketRoutine>);
 var
    aHandler  : TuMultiRoleHandler;
+   aProtocol : TuNetProtocol;
    i         : Integer;
 begin
-   // Initialize the handler
+   if Length(aRoles) <> Length(aRoutines) then
+      raise Exception.CreateFmt('Engine Wiring Error: Flag %s has %d roles but %d routines.',
+                                [TRttiEnumerationType.GetName<TuPacketFlag>(aFlag), Length(aRoles), Length(aRoutines)]);
+
+   aHandler := Default(TuMultiRoleHandler);
+
    for i := 0 to High(aRoles) do
-      aHandler.AddRole(aRoles[i], aRoutines[i]);
+      aHandler.AddToRole(aRoles[i], aRoutines[i]);
 
-//   FHandlers.AddOrSetValue(TuDispatchKey.Create(aFlag, aProto), Handler);
-end;
-
-procedure TuNetworkDispatcher.SetupHandler(
-   aFlag     : TuPacketFlag;
-   aProtocol : TuNetProtocol;
-   aHandler  : TuPacketHandler);
-begin
-   FHandlers.AddOrSetValue(TuDispatchKey.Create(aFlag, aProtocol), aHandler);
-end;
-
-procedure TuNetworkDispatcher.SetupUHandler(
-   aFlag    : TuPacketFlag;
-   aHandler : TuPacketHandler);
-begin
-   SetupHandler(aFlag, npUDP, aHandler);
-   SetupHandler(aFlag, npTCP, aHandler);
+   for aProtocol in aProtocols do
+      FHandlers.AddOrSetValue(TuDispatchKey.Create(aFlag, aProtocol), aHandler);
 end;
 
 ///////////////////////////////////////////////////////////////////////////////

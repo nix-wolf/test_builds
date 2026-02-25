@@ -5,47 +5,49 @@ interface
 uses System.SysUtils;
 
 type
-  TuNetworkRole = (nrNone, nrClient, nrServer, nrHub);
-  TuPacketFlag  = (pfCHAT, pfVEWLF, pfSES, pfJOIN, pfUPD, pfHTB, pfCLS, pfKIL, pfSHFT);
-  TuNetProtocol = (npUDP, npTCP);
+   TuNetworkRole = (nrNone, nrClient, nrServer, nrHub);
+   TuPacketFlag  = (pfCHAT, pfVEWLF, pfSES, pfJOIN, pfUPD, pfHTB, pfCLS, pfKIL, pfSHFT);
+   TuNetProtocol = (npUDP, npTCP);
 
-  TuGameSession = record
-    FHostIP      : String;
-    FHostName    : String;
-    FGameType    : String;
-    FPlayerCount : Integer;
-    FMaxPlayers  : Integer;
-    FLastSeen    : TDateTime;
+   TuGameSession = record
+      FHostIP      : String;
+      FHostName    : String;
+      FGameType    : String;
+      FPlayerCount : Integer;
+      FMaxPlayers  : Integer;
+      FLastSeen    : TDateTime;
 
-    function  ToNetworkString: String;
-    procedure FromNetworkString(aData: String);
-  end;
+      function  ToNetworkString: String;
+      procedure FromNetworkString(aData: String);
+   end;
 
-  TuPacket = record
-    FCommand : String;
-    FIP      : String;
-    FData    : String;
+   TuPacket = record
+      FCommand : String;
+      FIP      : String;
+      FData    : String;
 
-    function       Parse: string;
-    procedure      FromString(const aMsg: String);
-    class function Create(aPF: TuPacketFlag; const aMsg: String): TuPacket; static;
-  end;
+      function       Parse: string;
+      procedure      FromString(const aMsg: String);
+      class function Create(aPF: TuPacketFlag; const aMsg: String): TuPacket; static;
+   end;
 
-  TuDispatchKey = record
-    FFlag     : TuPacketFlag;
-    FProtocol : TuNetProtocol;
+   TuDispatchKey = record
+      FFlag     : TuPacketFlag;
+      FProtocol : TuNetProtocol;
 
-    class function Create(aFlag: TuPacketFlag; aProtocol: TuNetProtocol): TuDispatchKey; static;
-  end;
+      class function Create(aFlag: TuPacketFlag; aProtocol: TuNetProtocol): TuDispatchKey; static;
+   end;
 
-  TuPacketRoutine = reference to procedure(const P: TuPacket);
+   TuPacketRoutine = reference to procedure(const P: TuPacket);
 
-  TuMultiRoleHandler = record Roles: array[TuNetworkRole] of TuPacketRoutine;
-    procedure AddRole(aRole: TuNetworkRole; aRoutine: TuPacketRoutine);
-    procedure Execute(const P: TuPacket; aCurrentRole: TuNetworkRole);
-  end;
+   TuMultiRoleHandler = record
+      Roles: array[TuNetworkRole] of TuPacketRoutine;
 
-  TuPacketHandler = reference to procedure(const P: TuPacket);
+      procedure AddToRole(aRole: TuNetworkRole; aRoutine: TuPacketRoutine);
+      procedure Execute(const P: TuPacket; aCurrentRole: TuNetworkRole);
+   end;
+
+   TuPacketHandler = reference to procedure(const P: TuPacket);
 
 implementation
 
@@ -107,16 +109,17 @@ end;
 
 { TuMultiRoleHandler }
 
-procedure TuMultiRoleHandler.AddRole(aRole: TuNetworkRole;
+procedure TuMultiRoleHandler.AddToRole(aRole: TuNetworkRole;
    aRoutine: TuPacketRoutine);
 begin
-
+   Roles[aRole] := aRoutine;
 end;
 
-procedure TuMultiRoleHandler.Execute(const P: TuPacket;
-   aCurrentRole: TuNetworkRole);
+procedure TuMultiRoleHandler.Execute(const P      : TuPacket;
+                                     aCurrentRole : TuNetworkRole);
 begin
-
+   if Assigned(Roles[aCurrentRole]) then
+      Roles[aCurrentRole](P);
 end;
 
 end.

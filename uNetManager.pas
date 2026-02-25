@@ -9,6 +9,7 @@ uses
    System.Classes,
    System.DateUtils,
    Vcl.ExtCtrls,
+   uNetworkDispatcher,
    uNetworkTypes,
    uTCPClient,
    uTCPServer,
@@ -19,24 +20,26 @@ type
 
    TNetManager = class
       private
-         class var FInstance: TNetManager;
-         FUDP               : TuUDPNode;
-         FTCPClient         : TuTCPClient;
-         FTCPServer         : TuTCPServer;
-         FBroadCastTimer    : TTimer;
-         FDispatcher        : TDictionary<TuDispatchKey, TuPacketHandler>;
-         FActiveSessions    : TList<TuGameSession>;
-         FRole              : TuNetworkRole;
-         FIP                : String;
+         class var FInstance : TNetManager;
+         FUDP                : TuUDPNode;
+         FTCPClient          : TuTCPClient;
+         FTCPServer          : TuTCPServer;
+         FDispatcher         : TuNetworkDispatcher;
+         FRole               : TuNetworkRole;
+         FActiveSessions     : TList<TuGameSession>;
+         FBroadCastTimer     : TTimer;
+         FGameUpdateTimer    : TTimer;
+         FCleanUpTimer       : TTimer;
          //should be pulled for ini file?
-         FServerPort        : Integer;
+         FServerPort         : Integer;
          //can this be moved into discovery of just doing the discovery in a loop
-         FDiscoveryAttempts : Integer;
-         FHubIP             : String;
-         FGameName          : String;
+         FDiscoveryAttempts  : Integer;
+         FHubIP              : String;
+         FGameName           : String;
+         FIP                 : String;
 
-         FOnLog             : TUIEvent<String>;
-         FOnRoleChange      : TUIEvent<TuNetworkRole>;
+         FOnLog              : TUIEvent<String>;
+         FOnRoleChange       : TUIEvent<TuNetworkRole>;
 
          //timer functions
          procedure OnBroadcastTimer    (Sender: TObject);
@@ -95,6 +98,8 @@ begin
    //Should be read from .ini
    FServerPort := 6000;
 
+   FDispatcher := TuNEtworkDispatcher.Create;
+
    FUDP := TuUDPNode.Create;
    FTCPClient := TuTCPClient.Create;
    FTCPServer := TuTCPServer.Create;
@@ -104,6 +109,9 @@ begin
    FBroadcastTimer.Enabled := False;
    FBroadcastTimer.Interval := 2000;
    FBroadcastTimer.OnTimer := OnBroadcastTimer;
+
+   //Setup GameTimer variables
+   //Setup CleanUpTimer variables
 end;
 
 procedure TNetManager.Start;
@@ -210,15 +218,25 @@ procedure TNetManager.UpdateRoleToUI;
 ///////////////////////////////////////////////////////////////////////////////
 
 procedure TNetManager.OnTCPMessage(aSender: TuTCPRemoteClient; const aMsg: String);
+   var
+      aPacket: TuPacket;
 begin
-   //parse message
-   //handle with disptacher
+   if aSender.IP = FIP then Exit;
+   aPacket.FromString(aMsg);
+   aPacket.FIP := aSender.IP;
+
+   FDispatcher.HandlePacket(aPacket, npTCP, FRole);
 end;
 
 procedure TNetManager.OnUDPMessage(const aIP, aMsg: String);
+   var
+      aPacket: TuPacket;
 begin
    if aIP = FIP then Exit;
-   //parse message Handle with dispatcher
+   aPacket.FromString(aMsg);
+   aPacket.FIP := aIP;
+
+   FDispatcher.HandlePacket(aPacket, npUDP, FRole);
 end;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -281,10 +299,12 @@ begin
       FBroadcastTimer.Enabled := False;
       FreeAndNil(FBroadcastTimer);
    end; {IF}
-   if Assigned(FUDP) then FreeAndNil(FUDP);
-   if Assigned(FTCPClient) then FreeAndNil(FTCPClient);
-   if Assigned(FTCPServer) then FreeAndNil(FTCPServer);
+   if Assigned(FUDP)        then FreeAndNil(FUDP);
+   if Assigned(FTCPClient)  then FreeAndNil(FTCPClient);
+   if Assigned(FTCPServer)  then FreeAndNil(FTCPServer);
+   if Assigned(FDispatcher) then FreeAndNil(FDispatcher);
 
+   FreeAndNil(FActiveSessions);
    inherited;
 end;
 
