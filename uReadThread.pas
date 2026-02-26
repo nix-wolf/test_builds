@@ -51,6 +51,7 @@ begin
    inherited Create(True);
    FSocket         := aSocket;
    FOnDataReceived := aOnData;
+   FOnDisconnect   := nil;
    FBufferSize     := 4096;
    FreeOnTerminate := True;
    FIsAccepting    := aIsAccepting;

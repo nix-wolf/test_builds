@@ -56,8 +56,7 @@ var
    aFlagStr : String;
 begin
    try
-      aFlagStr := 'pf' + aPacket.FCommand;
-      aFlag := TRttiEnumerationType.GetValue<TuPacketFlag>(aFlagStr);
+      aFlag := TRttiEnumerationType.GetValue<TuPacketFlag>(aPacket.FCommand);
       aKey  := TuDispatchKey.Create(aFlag, aProtocol);
 
       if FHandlers.TryGetValue(aKey, aHandler) then

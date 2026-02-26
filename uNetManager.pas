@@ -184,7 +184,8 @@ begin
       else begin
          UpdateRoleToUI;
          LogToUI('Checking for Active Hub');
-         FUDP.Broadcast('VEWLF', FServerPort);
+         //should be making a proper packet here
+         FUDP.Broadcast('pfVEWLF|', FServerPort);
          Inc(FDiscoveryAttempts);
       end; {ELSE}
    end; {IF}
@@ -231,7 +232,7 @@ procedure TNetManager.OnTCPMessage(const aIP, aMsg: String);
    var
       aPacket: TuPacket;
 begin
-   LogToUI('Message Received TCP::');
+//   LogToUI('Message Received TCP::');
    if aIP = FIP then Exit;
    aPacket.FromString(aMsg);
    aPacket.FIP := aIP;
@@ -245,7 +246,7 @@ procedure TNetManager.OnUDPMessage(const aIP, aMsg: String);
 begin
    if (aIP = FIP) or (aIP = '127.0.0.1') then Exit;
 
-   LogToUI('Message Received UDP::' + aIP + '@:: ' + aMsg);
+//   LogToUI('Message Received UDP::' + aIP + '@:: ' + aMsg);
    aPacket.FromString(aMsg);
    aPacket.FIP := aIP;
 
