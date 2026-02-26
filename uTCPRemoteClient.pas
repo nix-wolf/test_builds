@@ -17,7 +17,7 @@ type
          FJoined : TDateTime;
          FIP     : String;
          FName   : String;
-         FPort   : String;
+         FPort   : U_SHORT;
 
       public
          constructor Create(aOwner: TObject; aSocket: TuSocket); overload;
@@ -28,7 +28,7 @@ type
 
          property Socket         : TuSocket read FSocket;
          property IP             : String   read FIP;
-         property Port           : String   read FPort;
+         property Port           : U_SHORT   read FPort;
          property Name           : String   read FName     write FName;
    end;
 
@@ -47,7 +47,8 @@ begin
    FOwner  := aOwner;
    FSocket := aSocket;
    FJoined := Now;
-   FIP     := aSocket.IpFromASocket(aSocket.Get);
+   FIP     := TuSocket.IpFromASocket(aSocket.Get);
+   FPort   := TuSocket.PortFromASocket(aSocket.Get);
    FName   := 'aUser.... <change your name>';
 end;
 
@@ -57,6 +58,7 @@ begin
    FSocket := aSocket;
    FJoined := Now;
    FIP     := aIP;
+   FPort   := TuSocket.PortFromASocket(aSocket.Get);
    FName   := 'aUser.... <change your name>';
 end;
 
@@ -65,10 +67,8 @@ end;
 ///////////////////////////////////////////////////////////////////////////////
 
 procedure TuTCPRemoteClient.Send(const aP: TuPacket);
-   var
-      aBytes: TBytes;
 begin
-    FSocket.Send(aP.Parse, FIP, StrToInt(FPort));
+    FSocket.Send(aP.Parse, FIP, FPort);
 end;
 
 ///////////////////////////////////////////////////////////////////////////////

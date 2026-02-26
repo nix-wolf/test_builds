@@ -49,9 +49,11 @@ type
          //timer functions
          procedure OnBroadcastTimer    (aSender: TObject);
          procedure OnCleanUpTimer      (aSender: TObject);
+
          //primary message handlers
          procedure OnTCPMessage        (const aIP, aMsg: String);
          procedure OnUDPMessage        (const aIP, aMsg: String);
+
          //client functions
          procedure OnConnect           (aSender: TObject);
 //         procedure OnDisconnect     (aSender: TObject);
@@ -290,6 +292,14 @@ procedure TNetManager.OnConnected(aSocket: TSocket; aAddr: SockAddr_In);
       aUSocket : TuSocket;
       aP       : TuPacket;
 begin
+
+   aUSocket := TuSocket.Create(
+      aSocket,
+      TuSocket.IpFromASocket(aSocket),
+      TuSocket.PortFromASocket(aSocket),
+      OnTCPMessage
+   );
+
    aRConn := TuTCPRemoteClient.Create(
       Self,
       aUsocket,
@@ -298,11 +308,11 @@ begin
 
    FTCPServer.OnClientConnected(aRConn);
 
-   //Add Port and IP to this
-   LogToUI('Connection Established: ' + aRConn.IP + '@' + aRConn.Port);
-   //Message builder?? Send should be a packet, packet constructor should be
-   aP.Create(pfCHAT, 'Welcome to the lobby!!');
+   aP     := TuPacket.Create(pfCHAT, 'Welcome to the lobby!!');
+   aP.FIP := aRConn.IP;
    aRConn.Send(aP);
+
+   LogToUI('Connection Established: ' + aRConn.IP + '@' + IntToStr(aRConn.Port) + ': Welcome Message Sent');
 end;
 
 procedure TNetManager.OnDisconnected(aSocket: TSocket; aAddr: SockAddr_In);

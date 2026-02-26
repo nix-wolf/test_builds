@@ -37,8 +37,9 @@ type
          procedure Close;
 
          function Connect(const aIP: String; const aPort: Integer): Boolean;
-         function IPToAddr(const aIP: String; const aPort: Integer): SockAddr_In;
-         function IpFromASocket(aSocket: TSocket): String;
+         class function IPToAddr(const aIP: String; const aPort: Integer): SockAddr_In;
+         class function IpFromASocket(aSocket: TSocket): String;
+         class function PortFromASocket(aSocket: TSocket): U_Short;
 
          property Address        : SockAddr_In         read FAddress;
          property Port           : U_Short             read FAddress.Sin_Port;
@@ -64,7 +65,7 @@ uses uReadThread,
 constructor TuSocket.Create(aProtocol: TuNetProtocol; aPort: Integer);
    var
       aV : Integer;
-      aA : sockaddr_in;
+      aA : SockAddr_In;
 begin
    aV := 1;
    case aProtocol of
@@ -156,9 +157,8 @@ end;
 procedure TuSocket.Send(const aMsg, aIP: String; const aPort: Integer);
    var
       aBytes    : TBytes;
-      aAddr  : sockaddr_in;
+      aAddr     : sockaddr_in;
       BytesSent : Integer;
-      pIP: AnsiString;
 begin
    if aMsg.Trim = '' then Exit;
 
@@ -203,12 +203,12 @@ begin
    Send(aMsg, '255.255.255.255', aPort);
 end;
 
-function TuSocket.IpFromASocket(aSocket: TSocket): String;
+class function TuSocket.IpFromASocket(aSocket: TSocket): String;
    var
-      aAddr: SockAddr_In;
-      aAddrLen: Integer;
+      aAddr    : SockAddr_In;
+      aAddrLen : Integer;
 begin
-   Result := '0.0.0.0';
+   Result   := '0.0.0.0';
    aAddrLen := SizeOf(aAddr);
    FillChar(aAddr, aAddrLen, 0);
 
@@ -217,12 +217,28 @@ begin
    end; {IF}
 end;
 
-function TuSocket.IPToAddr(const aIP: String; const aPort: Integer): SockAddr_In;
+
+
+class function TuSocket.IPToAddr(const aIP: String; const aPort: Integer): SockAddr_In;
 begin
    FillChar(Result, SizeOf(Result), 0);
-   Result.Sin_Family := AF_INET;
-   Result.Sin_Port := htons(aPort);
+   Result.Sin_Family      := AF_INET;
+   Result.Sin_Port        := htons(aPort);
    Result.Sin_Addr.S_addr := inet_addr(PAnsiChar(AnsiString(aIP)));
+end;
+
+class function TuSocket.PortFromASocket(aSocket: TSocket): U_Short;
+   var
+      aAddr    : SockAddr_In;
+      aAddrLen : Integer;
+begin
+   Result := 0;
+   aAddrLen := SizeOf(aAddr);
+   FillChar(aAddr, aAddrLen, 0);
+
+   if GetPeerName(aSocket, SockAddr(aAddr), aAddrLen) = 0 then begin
+      Result := Ntohs(aAddr.Sin_Port);
+   end; {IF}
 end;
 
 ///////////////////////////////////////////////////////////////////////////////

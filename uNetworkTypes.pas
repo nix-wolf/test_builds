@@ -26,8 +26,7 @@ type
 
    TuPacket = record
       FCommand : String;
-//not sure why i put it here maybe the reason will turn up if i dont remove it
-//      FIP      : String;
+      FIP      : String;
       FData    : String;
 
       function       Parse: string;
