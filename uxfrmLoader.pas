@@ -89,9 +89,9 @@ begin
    FFrame.Position.X := 0;
    FFrame.Position.Y := 0;
    FFrame.Align      := TAlignLayout.Client;
-   Self.Realign;
    FFrame.CanFocus   := True;
    FFrame.SetFocus;
+   Self.Realign;
 end;
 
 procedure TxfrmLoader.UpdateBackButton;

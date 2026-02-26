@@ -9,6 +9,7 @@ uses
   System.Classes,
   System.Variants,
   uxfraNetMenu,
+  uxfraPong,
   FMX.Types,
   FMX.Graphics,
   FMX.Controls,
@@ -43,14 +44,13 @@ uses uxfrmLoader;
 
 procedure TxfraMainMenu.btnMultiButtonClick(Sender: TObject);
 begin
-//  if Parent is TxfrmLoader then
-     TxfrmLoader(Parent).PushFrame(TxfraNetMenu);
-
+   TxfrmLoader(Parent).PushFrame(TxfraNetMenu);
 end;
 
 procedure TxfraMainMenu.btnSinglePlayerClick(Sender: TObject);
 begin
-  //todo single player menu
+//pong needs to be renamed to fra, its a frame not a form
+   TxfrmLoader(Parent).PushFrame(TxfrmPong);
 end;
 
 end.

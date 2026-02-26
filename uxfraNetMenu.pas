@@ -83,6 +83,7 @@ end;
 
 destructor TxfraNetMenu.Destroy;
 begin
+
    inherited Destroy;
 end;
 

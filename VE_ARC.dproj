@@ -163,15 +163,14 @@
             <DesignClass>TFrame</DesignClass>
         </DCCReference>
         <DCCReference Include="uNetManager.pas"/>
-        <DCCReference Include="uTCPClient.pas"/>
         <DCCReference Include="uTCPServer.pas"/>
         <DCCReference Include="uNetworkManager.pas"/>
         <DCCReference Include="uNetworkTypes.pas"/>
-        <DCCReference Include="uUDPNode.pas"/>
         <DCCReference Include="uReadThread.pas"/>
         <DCCReference Include="uNetworkDispatcher.pas"/>
         <DCCReference Include="uNetworkHandlers.pas"/>
         <DCCReference Include="uSocket.pas"/>
+        <DCCReference Include="uTCPRemoteClient.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

@@ -3,58 +3,48 @@ unit uTCPRemoteClient;
 interface
 
 uses
-  System.Net.Socket,
-  System.Classes,
-  System.SysUtils,
-  uReadThread;
+   uSocket,
+   uNetworkTypes,
+   System.SysUtils;
 
 type
-  TuTCPServer = class(TObject);
-  TOnDataReceived = procedure(const aIP, aData: String) of Object;
 
-  TuTCPRemoteClient = class
-    private
-      FOwner: TObject;
-      FSocket: TSocket;
-      FReadThread: TuReadThread;
-      FIP: String;
-      FOnData: TOnDataReceived;
-    public
-      constructor Create(aOwner: TObject; aSocket: TSocket);
-      destructor Destroy; override;
+   TuTCPRemoteClient = class
+      private
+         FOwner  : TObject;
+         FSocket : TuSocket;
+         FIP     : String;
+         FName   : String;
 
-      procedure Send(const aMsg: String);
-      procedure OnLine(const aIP, aMsg: String);
-      procedure Disconnect;
+         FOnData : TOnDataReceived;
 
-      property IP: String read FIP;
-      property Socket: TSocket read FSocket;
-      property OnDataReceived: TOnDataReceived read FOnData write FOnData;
-  end;
+      public
+         constructor Create(aOwner: TObject; aSocket: TuSocket);
+         destructor Destroy; override;
+
+         procedure Send(const aMsg: String);
+         procedure OnMessage(const aIP, aMsg: String);
+         procedure Disconnect;
+
+         property IP             : String          read FIP;
+         property Socket         : TuSocket        read FSocket;
+         property OnDataReceived : TOnDataReceived read FOnData    write FOnData;
+   end;
 
 implementation
 
 { TuTCPRemoteClient }
 
+uses uTCPServer;
+
 ///////////////////////////////////////////////////////////////////////////////
 //// Construction/Initalization
 ///////////////////////////////////////////////////////////////////////////////
-uses uTCPServer;
 
-constructor TuTCPRemoteClient.Create(aOwner: TObject; aSocket: TSocket);
+constructor TuTCPRemoteClient.Create(aOwner: TObject; aSocket: TuSocket);
 begin
-  FOwner := aOwner;
-  FSocket := aSocket;
-
-  //not sure about this
-  try
-    FIP := FSocket.Endpoint.Address.Address;
-  except
-    FIP := '0.0.0.0';
-  end;
-
-  FReadThread := TuReadThread.Create(FSocket, OnLine, Disconnect);
-  FReadThread.Start;
+   FOwner := aOwner;
+   FSocket := aSocket;
 end;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -62,19 +52,16 @@ end;
 ///////////////////////////////////////////////////////////////////////////////
 
 procedure TuTCPRemoteClient.Send(const aMsg: String);
-var
-  aBytes: TBytes;
+   var
+      aBytes: TBytes;
 begin
-  if TSocketState.Connected in FSocket.State then begin
-    aBytes := TEncoding.UTF8.GetBytes(aMsg + #10);
-    FSocket.Send(aBytes, 0, Length(aBytes));
-  end; {IF}
-end;
 
-procedure TuTCPRemoteClient.OnLine(const aIP, aMsg: String);
+end;
+///nope this does work
+procedure TuTCPRemoteClient.OnMessage(const aIP, aMsg: String);
 begin
-  if Assigned(FOwner) then
-    TuTCPServer(FOwner).OnClientMessage(Self, aMsg);
+   if Assigned(FOwner) then
+      (FOwner as TuTCPServer).OnClientMessage(Self, aMsg);
 end;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -83,14 +70,23 @@ end;
 
 procedure TuTCPRemoteClient.Disconnect;
 begin
-  if Assigned(FOwner) then
-    TuTCPServer(FOwner).OnClientDisconnect(Self);
+   if Assigned(FOwner) then
+      TuTCPServer(FOwner).OnClientDisconnect(Self);
 end;
 
 destructor TuTCPRemoteClient.Destroy;
 begin
-  if Assigned(FSocket) then FSocket.Close;
-  inherited;
+   if Assigned(FSocket) then FSocket.Close;
+   inherited;
 end;
 
 end.
+
+
+///////////////////////////////////////////////////////////////////////////////
+//// FOOTNOTE:::
+/// I suppose that uTCPRemoteClient, should have always been TCPClient
+///   since you logically just need a socket as your "TCP connection" on a
+///   client. but I dont want to shift everything over now... to much reworking
+///   ... getting painful... but its added to the kanban
+///////////////////////////////////////////////////////////////////////////////

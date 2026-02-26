@@ -3,7 +3,7 @@ unit uNetworkHandlers;
 interface
 
 uses
-  uNetworkTypes;
+   uNetworkTypes;
 
 type
    TuNetworkHandler = class
@@ -46,6 +46,7 @@ type
         class procedure ClientSHFTHandler (const aP: TuPacket);
         class procedure ServerSHFTHandler (const aP: TuPacket);
         class procedure HubSHFTHandler    (const aP: TuPacket);
+
    end;
 
 implementation
@@ -57,7 +58,8 @@ uses
 { TuMultiRoleHandler }
 
 {*
-   Dispatcher.Register(pfFLAG, PROTO,
+   Dispatcher.Register(pfFLAG,
+      [npPROTO],
       [nrNone, nrClient, nrServer, nrHub],
       [
          procedure(const P: TuPacket) begin nrNoneFLAGHandler(P); end,
@@ -175,11 +177,12 @@ begin
 
 end;
 
+{ TuNetworkHandler }
+
 ///////////////////////////////////////////////////////////////////////////////
 //// Handler Implementations::
 ///////////////////////////////////////////////////////////////////////////////
 
-{ TuNetworkHandler }
 
 class procedure TuNetworkHandler.CHATHandler(const aP: TuPacket);
 begin

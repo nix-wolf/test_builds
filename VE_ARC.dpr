@@ -9,15 +9,14 @@ uses
   uxfraMainMenu in 'uxfraMainMenu.pas' {xfraMainMenu: TFrame},
   uxfraNetMenu in 'uxfraNetMenu.pas' {xfraNetMenu: TFrame},
   uNetManager in 'uNetManager.pas',
-  uTCPClient in 'uTCPClient.pas',
   uTCPServer in 'uTCPServer.pas',
   uNetworkManager in 'uNetworkManager.pas',
   uNetworkTypes in 'uNetworkTypes.pas',
-  uUDPNode in 'uUDPNode.pas',
   uReadThread in 'uReadThread.pas',
   uNetworkDispatcher in 'uNetworkDispatcher.pas',
   uNetworkHandlers in 'uNetworkHandlers.pas',
-  uSocket in 'uSocket.pas';
+  uSocket in 'uSocket.pas',
+  uTCPRemoteClient in 'uTCPRemoteClient.pas';
 
 {}
 
