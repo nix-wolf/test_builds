@@ -5,6 +5,7 @@ interface
 uses
    uSocket,
    uNetworkTypes,
+   Winapi.Winsock2,
    System.SysUtils;
 
 type
@@ -13,22 +14,22 @@ type
       private
          FOwner  : TObject;
          FSocket : TuSocket;
+         FJoined : TDateTime;
          FIP     : String;
          FName   : String;
-
-         FOnData : TOnDataReceived;
+         FPort   : String;
 
       public
-         constructor Create(aOwner: TObject; aSocket: TuSocket);
+         constructor Create(aOwner: TObject; aSocket: TuSocket); overload;
+         constructor Create(aOwner: TObject; aSocket: TuSocket; aIP: String); overload;
          destructor Destroy; override;
 
-         procedure Send(const aMsg: String);
-         procedure OnMessage(const aIP, aMsg: String);
-         procedure Disconnect;
+         procedure Send(const aP: TuPacket);
 
-         property IP             : String          read FIP;
-         property Socket         : TuSocket        read FSocket;
-         property OnDataReceived : TOnDataReceived read FOnData    write FOnData;
+         property Socket         : TuSocket read FSocket;
+         property IP             : String   read FIP;
+         property Port           : String   read FPort;
+         property Name           : String   read FName     write FName;
    end;
 
 implementation
@@ -43,36 +44,36 @@ uses uTCPServer;
 
 constructor TuTCPRemoteClient.Create(aOwner: TObject; aSocket: TuSocket);
 begin
-   FOwner := aOwner;
+   FOwner  := aOwner;
    FSocket := aSocket;
+   FJoined := Now;
+   FIP     := aSocket.IpFromASocket(aSocket.Get);
+   FName   := 'aUser.... <change your name>';
+end;
+
+constructor TuTCPRemoteClient.Create(aOwner: TObject; aSocket: TuSocket; aIP: String);
+begin
+   FOwner  := aOwner;
+   FSocket := aSocket;
+   FJoined := Now;
+   FIP     := aIP;
+   FName   := 'aUser.... <change your name>';
 end;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// Other
 ///////////////////////////////////////////////////////////////////////////////
 
-procedure TuTCPRemoteClient.Send(const aMsg: String);
+procedure TuTCPRemoteClient.Send(const aP: TuPacket);
    var
       aBytes: TBytes;
 begin
-
-end;
-///nope this does work
-procedure TuTCPRemoteClient.OnMessage(const aIP, aMsg: String);
-begin
-   if Assigned(FOwner) then
-      (FOwner as TuTCPServer).OnClientMessage(Self, aMsg);
+    FSocket.Send(aP.Parse, FIP, StrToInt(FPort));
 end;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// Deconstruction
 ///////////////////////////////////////////////////////////////////////////////
-
-procedure TuTCPRemoteClient.Disconnect;
-begin
-   if Assigned(FOwner) then
-      TuTCPServer(FOwner).OnClientDisconnect(Self);
-end;
 
 destructor TuTCPRemoteClient.Destroy;
 begin

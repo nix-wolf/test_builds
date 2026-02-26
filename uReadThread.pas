@@ -19,7 +19,8 @@ type
          FIsAccepting    : Boolean;
 
          FOnDataReceived : TOnDataReceived;
-         FOnConnect      : TClientEvent;
+         FOnConnect      : TClientConnectEvent;
+         FOnDisconnect   : TClientConnectEvent;
 
          procedure ListenExecute;
          procedure AcceptExecute;
@@ -32,7 +33,11 @@ type
             aIsAccepting : Boolean = False
          );
 
-         property BufferSize: Integer read FBufferSize write FBufferSize;
+         destructor Destroy; override;
+
+         property BufferSize   : Integer             read FBufferSize   write FBufferSize;
+         property OnConnect    : TClientConnectEvent read FOnConnect    write FOnConnect;
+         property OnDisconnect : TClientConnectEvent read FOnDisconnect write FOnDisconnect;
   end;
 
 implementation
@@ -57,16 +62,25 @@ var
    RemoteAddr: sockaddr_in;
    AddrLen: Integer;
 begin
+//THIS ISNT SHUTTING DOWN PROPERLY HERE  had no deconstructor remove if no more crashed onClose +0
    while not Terminated do
    begin
       AddrLen := SizeOf(RemoteAddr);
-      ClientSocket := accept(TuSocket(FSocket).Get, @RemoteAddr, @AddrLen);
 
+      If Assigned(FSocket) then begin
+         ClientSocket := accept(TuSocket(FSocket).Get, @RemoteAddr, @AddrLen);
+      end {IF}
+      else
+         Terminate;
+      //^^^ this may fix the other commect issue i think if no socket we kill the thread
       if (ClientSocket <> INVALID_SOCKET) and (not Terminated) then
       begin
-         TThread.Queue(nil, procedure begin
-//            FOnConnect(ClientSocket, inet_ntoa(RemoteAddr.sin_addr));
-         end);
+         //The Event Wrapper could be abstracted and used here
+         if Assigned(FOnConnect) then begin
+            TThread.Queue(nil, procedure begin
+               FOnConnect(ClientSocket, remoteAddr);
+            end);
+         end;
       end;
   end;
 end;
@@ -103,9 +117,16 @@ begin
          end; {IF}
 
       end {IF}
+      else if aLen <= 0 then begin
+         if Assigned(FOnDisconnect) then begin
+            //figured local declaration and inline assignment was appropriate, john?
+            var aAddr: SockAddr_In := TuSocket(FSocket).Address;
+            TThread.Queue(nil, procedure begin FOnDisconnect(TuSocket(FSocket).Get, aAddr); end);
+         end; {IF}
+      end {ELSE IF}
       else if aLen = SOCKET_ERROR then begin
          if not Terminated then Break;
-      end;{ IF}
+      end; {ELSE IF}
    end; {WHILE}
 end;
 
@@ -113,6 +134,11 @@ procedure TuReadThread.Execute;
 begin
    if not FIsAccepting then begin ListenExecute; end
    else AcceptExecute;
+end;
+
+destructor TuReadThread.Destroy;
+begin
+  inherited;
 end;
 
 end.

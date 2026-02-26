@@ -19,6 +19,7 @@ type
          FProtocol       : TuNetProtocol;
 
          FOnDataReceived : TOnDataReceived;
+         FOnConnect      : TClientConnectEvent;
 
       public
          constructor Create(aProtocol: TuNetProtocol; aPort: Integer); overload;
@@ -34,16 +35,17 @@ type
          destructor Destroy; override;
          procedure Disconnect;
          procedure Close;
+
          function Connect(const aIP: String; const aPort: Integer): Boolean;
          function IPToAddr(const aIP: String; const aPort: Integer): SockAddr_In;
+         function IpFromASocket(aSocket: TSocket): String;
 
-         property Port           : U_Short         read FAddress.Sin_Port;
-         property Get            : TSocket         read FSocket;
-         property Protocol       : TuNetProtocol   read FProtocol;
-         property OnDataReceived : TOnDataReceived read FOnDataReceived write FOnDataReceived;
-         //onaccept
-         //onconnected
-         //
+         property Address        : SockAddr_In         read FAddress;
+         property Port           : U_Short             read FAddress.Sin_Port;
+         property Get            : TSocket             read FSocket;
+         property Protocol       : TuNetProtocol       read FProtocol;
+         property OnDataReceived : TOnDataReceived     read FOnDataReceived write FOnDataReceived;
+         property OnConnect      : TClientConnectEvent read FOnConnect write FOnConnect;
          //ondisconnect
    end;
 
@@ -199,6 +201,20 @@ end;
 procedure TuSocket.Broadcast(const aMsg: String; const aPort: Integer);
 begin
    Send(aMsg, '255.255.255.255', aPort);
+end;
+
+function TuSocket.IpFromASocket(aSocket: TSocket): String;
+   var
+      aAddr: SockAddr_In;
+      aAddrLen: Integer;
+begin
+   Result := '0.0.0.0';
+   aAddrLen := SizeOf(aAddr);
+   FillChar(aAddr, aAddrLen, 0);
+
+   if GetPeerName(aSocket, SockAddr(aAddr), aAddrLen) = 0 then begin
+      Result := String(INet_NToA(aAddr.Sin_Addr));
+   end; {IF}
 end;
 
 function TuSocket.IPToAddr(const aIP: String; const aPort: Integer): SockAddr_In;

@@ -24,8 +24,8 @@ type
          FActive       : Boolean;
 
          FOnMsg        : TOnDataReceived;
-         FOnConnect    : TClientEvent;
-         FOnDisconnect : TClientEvent;
+         FOnConnect    : TClientConnectEvent;
+         FOnDisconnect : TClientConnectEvent;
          FOnLog        : TUIEvent;
 
          procedure LogToUI(const aMsg: String);
@@ -34,16 +34,17 @@ type
          destructor Destroy; override;
 
          procedure OnClientMessage(aClient: TuTCPRemoteClient; const aMsg: String);
+         procedure OnClientConnected(aClient: TuTCPRemoteClient);
          procedure OnClientDisconnect(aClient: TuTCPRemoteClient);
 
          procedure Start(aPort: Integer);
          procedure Stop;
          procedure Broadcast(const aMsg: String);
 
-         property OnMessage      : TOnDataReceived read FOnMsg        write FOnMsg;
-         property OnConnected    : TClientEvent    read FOnConnect    write FOnConnect;
-         property OnDisconnected : TClientEvent    read FOnDisconnect write FOnDisconnect;
-         property OnLog          : TUIEvent        read FOnLog        write FOnLog;
+         property OnMessage      : TOnDataReceived        read FOnMsg        write FOnMsg;
+         property OnConnected    : TClientConnectEvent    read FOnConnect    write FOnConnect;
+         property OnDisconnected : TClientConnectEvent    read FOnDisconnect write FOnDisconnect;
+         property OnLog          : TUIEvent               read FOnLog        write FOnLog;
 
    end;
 implementation
@@ -62,11 +63,14 @@ end;
 
 procedure TuTCPServer.Start(aPort: Integer);
 begin
-   FListener := TuSocket.Create(npTCP, aPort);
+   FListener                := TuSocket.Create(npTCP, aPort);
    FListener.OnDataReceived := OnMessage;
-   FListener.Start;
+   FJoinThread              := TuReadThread.Create(FListener, OnMessage, True);
 
-   FJoinThread := TuReadThread.Create(FListener, OnMessage, True);
+   if Assigned(FOnConnect) then
+      FJoinThread.OnConnect := FOnConnect;
+
+   FListener.Start;
    FJoinThread.Start;
 
    LogToUI('TCP Hub (Hybrid) Listening on ' + IntToStr(aPort));
@@ -82,10 +86,15 @@ begin
    OnLog(aMsg);
 end;
 
+procedure TuTCPServer.OnClientConnected(aClient: TuTCPRemoteClient);
+begin
+   FClients.Add(aClient);
+end;
+
 procedure TuTCPServer.OnClientDisconnect(aClient: TuTCPRemoteClient);
 begin
    if Assigned(FOnDisconnect) then
-      FOnDisconnect(aClient);
+//      FOnDisconnect(aClient);
 
    TMonitor.Enter(FClients);
    try

@@ -3,6 +3,8 @@ unit uNetworkTypes;
 interface
 
 uses
+   System.Rtti,
+   Winapi.Winsock2,
    System.SysUtils;
 
 type
@@ -24,7 +26,8 @@ type
 
    TuPacket = record
       FCommand : String;
-      FIP      : String;
+//not sure why i put it here maybe the reason will turn up if i dont remove it
+//      FIP      : String;
       FData    : String;
 
       function       Parse: string;
@@ -48,10 +51,11 @@ type
       procedure Execute(const P: TuPacket; aCurrentRole: TuNetworkRole);
    end;
 
-   TuPacketHandler    = reference to procedure(const P: TuPacket);
-   TClientEvent = procedure(aClient: TObject) of Object;
-   TOnDataReceived    = procedure(const aIP, aData: String) of Object;
-   TUIEvent           = procedure(const aData: String) of Object;
+   TuPacketHandler     = reference to procedure(const P: TuPacket);
+   TClientConnectEvent = procedure(aSocket: TSocket; aAddr: SockAddr_In) of Object;
+   TOnDataReceived     = procedure(const aIP, aData: String) of Object;
+   TUIEvent            = procedure(const aData: String) of Object;
+
 
 implementation
 
@@ -81,7 +85,7 @@ end;
 
 class function TuPacket.Create(aPF: TuPacketFlag; const aMsg: String): TuPacket;
 begin
-//  Result.FCommand := TRttiEnumerationType.GetName<TuPacketFlag>(aPF);
+   Result.FCommand := TRttiEnumerationType.GetName<TuPacketFlag>(aPF);
    Result.FData := aMsg;
 end;
 

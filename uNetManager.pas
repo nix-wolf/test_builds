@@ -9,6 +9,7 @@ uses
    System.Classes,
    System.DateUtils,
    Vcl.ExtCtrls,
+   uTCPRemoteClient,
    uNetworkDispatcher,
    uNetworkTypes,
    uTCPServer,
@@ -46,17 +47,17 @@ type
          FOnRoleChange       : TUIEvent<TuNetworkRole>;
 
          //timer functions
-         procedure OnBroadcastTimer (Sender: TObject);
-         procedure OnCleanUpTimer   (Sender: TObject);
+         procedure OnBroadcastTimer    (aSender: TObject);
+         procedure OnCleanUpTimer      (aSender: TObject);
          //primary message handlers
-         procedure OnTCPMessage     (const aIP, aMsg: String);
-         procedure OnUDPMessage     (const aIP, aMsg: String);
+         procedure OnTCPMessage        (const aIP, aMsg: String);
+         procedure OnUDPMessage        (const aIP, aMsg: String);
          //client functions
-         procedure OnConnect        (Sender: TObject);
-         procedure OnDisconnect     (Sender: TObject);
+         procedure OnConnect           (aSender: TObject);
+//         procedure OnDisconnect     (aSender: TObject);
          //server functions
-//         procedure OnConnected         (aClient: TuTCPRemoteClient);
-//         procedure OnDisconnected      (aClient: TuTCPRemoteClient);
+         procedure OnConnected         (aSocket: TSocket; aAddr: SockAddr_In);
+         procedure OnDisconnected      (aSocket: TSocket; aAddr: SockAddr_In);
          //Wrapper for UI events to return data to the ui
          procedure UIEventCallback<T>  (aEvent: TUIEvent<T>; aT: T);
 
@@ -106,10 +107,8 @@ begin
       raise Exception.Create('Critical: WSAStartup failed with error: ' + IntToStr(StartupResult));
    end;
    //Should be read from .ini
-   FServerPort := 6000;
-
-   FDispatcher := TuNEtworkDispatcher.Create;
-
+   FServerPort              := 6000;
+   FDispatcher              := TuNEtworkDispatcher.Create;
    FUDP                     := TuSocket.Create(npUDP, FServerPort);
    FTCPClient               := TuSocket.Create(npTCP, FServerPort + 1);
    FTCPServer               := TuTCPServer.Create;
@@ -122,17 +121,16 @@ begin
    FBroadcastTimer.OnTimer  := OnBroadcastTimer;
 
    //Setup GameTimer variables
-   //Setup CleanUpTimer variables
+   //Setup CleanUpTimer variables (Doesnt start till first session received, and shuts off when none are left)
 end;
 
 procedure TNetManager.Start;
 begin
+   FIP                 := GetLocalIP;
    FUDP.OnDataReceived := OnUDPMessage;
    FUDP.Start;
 
    FBroadcastTimer.Enabled := True;
-
-   FIP := GetLocalIP;
 end;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -165,18 +163,18 @@ begin
    end; {IF}
 end;
 
-procedure TNetManager.OnBroadcastTimer(Sender: TObject);
+procedure TNetManager.OnBroadcastTimer(aSender: TObject);
 begin
    if (FRole = nrClient) or (FRole = nrServer) then begin
       if FHubIP <> '' then begin
-//         LogToUI('UDP HEARTBEAT...');
-//      FUDP.Send('HEARTBEAT,' + FGameName, FHubIP, FServerPort);
+//      FUDP.Send('HETB|' + FGameName, FHubIP, FServerPort);
       end; {IF}
    end; {IF}
 
    if FRole = nrNone then begin
       if FDiscoveryAttempts >= 3 then begin
          FRole := nrHub;
+
       UpdateRoleToUI;
       StartHub(FServerPort);
       FBroadcastTimer.Enabled := False;
@@ -190,7 +188,7 @@ begin
    end; {IF}
 end;
 
-procedure TNetManager.OnCleanUpTimer(Sender: TObject);
+procedure TNetManager.OnCleanUpTimer(aSender: TObject);
    var
       i: Integer;
 begin
@@ -206,7 +204,6 @@ begin
       TMonitor.Exit(FActiveSessions);
    end;
 end;
-
 
 procedure TNetManager.UIEventCallback<T>(aEvent: TUiEvent<T>; aT: T);
 begin
@@ -226,7 +223,6 @@ procedure TNetManager.UpdateRoleToUI;
 ///////////////////////////////////////////////////////////////////////////////
 //// Primary Message Handlers
 ///////////////////////////////////////////////////////////////////////////////
-
 
 ///COMPRESS TO A SINGLE CALL THEY ARE BOTH JUST DIFFERENTIATED BY PROTOCOL
 procedure TNetManager.OnTCPMessage(const aIP, aMsg: String);
@@ -262,55 +258,66 @@ procedure TNetManager.Connect(const aIP: String; const aPort: Integer);
    var
       aConnection: Boolean;
 begin
-    FTCPClient.OnDataReceived := OnTCPMessage;
+   FTCPClient.OnDataReceived := OnTCPMessage;
+   aConnection               := FTCPClient.Connect(aIP, aPort);
 
-      {
-         Needs to be able to set the onconnect and ondisconnect in the client
-         probably should do that also for the udp connection aswell not sure
-         if there is any other life cycle methods that need to be set
-
-         connect shouldnt need ip or port as they should already be in the socket
-         well addr is
-      }
-
-   aConnection := FTCPClient.Connect(aIP, aPort);
-
-   if aConnection then
-      LogToUI('Connected to: ' + aIP + '@' + IntToStr(aPort));
-
+   if aConnection then OnConnect(Self);
 end;
 
-procedure TNetManager.OnConnect(Sender: TObject);
+//does this even need a argument? IT NEED A PROTOCOL for where we call it
+procedure TNetManager.OnConnect(aSender: TObject);
+   var
+      aIP, aPort: String;
 begin
-   LogToUI('Connection Established');
+   aIP   := FTCPClient.IpFromASocket(FTCPClient.Get);
+   aPort := IntToStr(FTCPClient.Port);
 
+   LogToUI('Connected to: ' + aIP + '@' + aPort);
 end;
 
-procedure TNetManager.OnDisconnect(Sender: TObject);
-begin
-   //notify server disconnect, kill connections, scrub data for graceful exit
-end;
+//procedure TNetManager.OnDisconnect(Sender: TObject);
+//begin
+//   notify server disconnect, kill connections, scrub data for graceful exit
+//end;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// Server Functions
 ///////////////////////////////////////////////////////////////////////////////
 
+procedure TNetManager.OnConnected(aSocket: TSocket; aAddr: SockAddr_In);
+   var
+      aRConn   : TuTCPRemoteClient;
+      aUSocket : TuSocket;
+      aP       : TuPacket;
+begin
+   aRConn := TuTCPRemoteClient.Create(
+      Self,
+      aUsocket,
+      aUSocket.IpFromASocket(aSocket)
+   );
+
+   FTCPServer.OnClientConnected(aRConn);
+
+   //Add Port and IP to this
+   LogToUI('Connection Established: ' + aRConn.IP + '@' + aRConn.Port);
+   //Message builder?? Send should be a packet, packet constructor should be
+   aP.Create(pfCHAT, 'Welcome to the lobby!!');
+   aRConn.Send(aP);
+end;
+
+procedure TNetManager.OnDisconnected(aSocket: TSocket; aAddr: SockAddr_In);
+begin
+//   notify server disconnect, kill connections, scrub data for graceful exit
+end;
 
 procedure TNetManager.StartHub(const aPort: Integer);
 begin
    LogToUI('Starting Lobby Server...');
-   FTCPServer := TuTCPServer.Create;
-
-   {
-      oh i have these set? i wonder why they never where called
-      should have been called on the server when the client connected?
-      i have a powershell netstat output that claimed is was ESTABLISHED
-   }
-
-//   FTCPServer.OnConnected := OnConnected;
-//   FTCPServer.OnDisconnected := OnDisconnected;
-   FTCPServer.OnMessage := OnTCPMessage;
-   FTCPServer.OnLog := LogToUI;
+   FTCPServer                := TuTCPServer.Create;
+   FTCPServer.OnMessage      := OnTCPMessage;
+   FTCPServer.OnLog          := LogToUI;
+   FTCPServer.OnConnected    := OnConnected;
+   FTCPServer.OnDisconnected := OnDisconnected;
    //should be on 6001, will be 24000+ for actual game servers.
    FTCPServer.Start(aPort + 1);
 
