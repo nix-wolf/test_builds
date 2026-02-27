@@ -71,10 +71,11 @@ type
          procedure Start;
          procedure StartHub(const aPort: Integer);
          procedure Connect(const aIP: String; const aPort: Integer);
-
+         procedure Send(aP: TuPacket);
          //call backs for returning data to parent frame
          procedure LogToUI             (const aMsg: String);
          procedure UpdateRoleToUI;
+
 
          class property UDP               : TuSocket                read FUDP;
          class property TCPClient         : TuSocket                read FTCPClient;
@@ -104,10 +105,9 @@ constructor TNetManager.Create;
 begin
    StartupResult := WSAStartup($0202, WSAData);
 
-   if StartupResult <> 0 then
-   begin
+   if StartupResult <> 0 then begin
       raise Exception.Create('Critical: WSAStartup failed with error: ' + IntToStr(StartupResult));
-   end;
+   end; {IF}
    //Should be read from .ini
    FServerPort              := 6000;
    FDispatcher              := TuNEtworkDispatcher.Create;
@@ -179,13 +179,13 @@ begin
 
       UpdateRoleToUI;
       StartHub(FServerPort);
-      FBroadcastTimer.Enabled := False;
+      FBroadcastTimer.Interval := 10000;
       end {IF}
       else begin
          UpdateRoleToUI;
          LogToUI('Checking for Active Hub');
          //should be making a proper packet here
-         FUDP.Broadcast('pfVEWLF|', FServerPort);
+         FUDP.Broadcast(TuPacket.Create(pfVEWLF, '').Parse, FServerPort);
          Inc(FDiscoveryAttempts);
       end; {ELSE}
    end; {IF}
@@ -206,6 +206,22 @@ begin
    finally
       TMonitor.Exit(FActiveSessions);
    end;
+end;
+
+procedure TNetManager.Send(aP: TuPacket);
+begin
+   //Probably should have a way to ensure the connection is good... active in the socket
+   case FRole of
+      nrNone   : if Assigned(UDP) then UDP.Broadcast(aP.Parse, 6000);
+      nrClient : if Assigned(FTCPClient) then FTCPClient.Send(aP.Parse, '', 0);
+      nrServer,
+      nrHub    : if Assigned(FTCPServer) then FTCPServer.Broadcast(aP);
+   end;
+
+
+//   if Assigned(FTCPClient) then
+
+
 end;
 
 procedure TNetManager.UIEventCallback<T>(aEvent: TUiEvent<T>; aT: T);
@@ -277,11 +293,6 @@ begin
 
    LogToUI('Connected to: ' + aIP + '@' + aPort);
 end;
-
-//procedure TNetManager.OnDisconnect(Sender: TObject);
-//begin
-//   notify server disconnect, kill connections, scrub data for graceful exit
-//end;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// Server Functions

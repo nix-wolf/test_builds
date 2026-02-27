@@ -39,7 +39,7 @@ type
 
          procedure Start(aPort: Integer);
          procedure Stop;
-         procedure Broadcast(aPF: TuPacketFlag; const aMsg: String);
+         procedure Broadcast(aP: TuPacket);
 
          property OnMessage      : TOnDataReceived        read FOnMsg        write FOnMsg;
          property OnConnected    : TClientConnectEvent    read FOnConnect    write FOnConnect;
@@ -110,16 +110,13 @@ begin
 //    FOnMsg(aClient, aMsg);
 end;
 
-procedure TuTCPServer.Broadcast(aPF: TuPacketFlag; const aMsg: String);
+procedure TuTCPServer.Broadcast(aP: TuPacket);
    var
       aClient : TuTCPRemoteClient;
-      aP      : TuPacket;
 begin
    TMonitor.Enter(FClients);
    try
       for aClient in FClients do begin
-//        if TSocketState.Connected in aClient.Socket.State then
-         aP.Create(aPF, aMsg);
          aClient.Send(aP);
       end;
    finally

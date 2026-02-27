@@ -95,8 +95,7 @@ procedure TxfraNetMenu.edtChatKeyPress(Sender      : TObject;
 begin
    if Key = VK_RETURN then begin
       if Trim(edtChat.Text) <> '' then begin
-      //todo need to store username somewhere
-//         FNetworkManager.SendChatMessage('aUserName', edtChat.Text);
+         FNetworkManager.Send(TuPacket.Create(pfCHAT, edtChat.Text.Trim));
          edtChat.Text := '';
          Key := 0;
       end; {IF}
