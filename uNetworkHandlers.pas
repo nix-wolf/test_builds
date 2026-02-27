@@ -238,9 +238,14 @@ end;
 class procedure TuNetworkHandler.ClientCHATHandler(const aP: TuPacket);
    begin ChatHandler(aP); end;
 class procedure TuNetworkHandler.ServerCHATHandler(const aP: TuPacket);
-   begin ChatHandler(aP); end;
+begin
+   with NetMgr do begin
+      Send(aP);
+      LogtoUI(aP.FData);
+   end;
+end;
 class procedure TuNetworkHandler.HubCHATHandler   (const aP: TuPacket);
-   begin ChatHandler(aP); end;
+   begin ServerChatHandler(aP); end;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// pfSES HANDLERS::

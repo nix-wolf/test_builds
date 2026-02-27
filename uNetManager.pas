@@ -8,6 +8,7 @@ uses
    System.SysUtils,
    System.Classes,
    System.DateUtils,
+   System.Rtti,
    Vcl.ExtCtrls,
    uTCPRemoteClient,
    uNetworkDispatcher,
@@ -215,7 +216,12 @@ begin
       nrNone   : if Assigned(UDP) then UDP.Broadcast(aP.Parse, 6000);
       nrClient : if Assigned(FTCPClient) then FTCPClient.Send(aP.Parse, '', 0);
       nrServer,
-      nrHub    : if Assigned(FTCPServer) then FTCPServer.Broadcast(aP);
+      nrHub    : if Assigned(FTCPServer) then begin
+         FTCPServer.Broadcast(aP);
+         if pfChat = TRttiEnumerationType.GetValue<TuPacketFlag>(aP.FCommand) then
+            LogToUI(aP.FData);
+
+      end;
    end;
 
 
