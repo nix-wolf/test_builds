@@ -16,6 +16,7 @@ type
 
    TuLogEventData = record
       FMsg      : String;
+      FType	: TuMessageType;
       FColor    : TAlphaColor;
       TimeStamp : TDateTIme;
 
