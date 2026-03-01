@@ -1,0 +1,66 @@
+object xFraHostMenu: TxFraHostMenu
+  Size.Width = 231.000000000000000000
+  Size.Height = 137.000000000000000000
+  Size.PlatformDefault = False
+  object Rectangle1: TRectangle
+    Size.Width = 193.000000000000000000
+    Size.Height = 105.000000000000000000
+    Size.PlatformDefault = False
+    object btnCancel: TButton
+      Position.X = 104.000000000000000000
+      Position.Y = 68.000000000000000000
+      Size.Width = 80.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 4
+      Text = 'Cancel'
+      TextSettings.Trimming = None
+      OnClick = btnCancelClick
+    end
+    object btnCreate: TButton
+      Position.X = 8.000000000000000000
+      Position.Y = 68.000000000000000000
+      Size.Width = 92.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 3
+      Text = 'Create'
+      TextSettings.Trimming = None
+      OnClick = btnCreateClick
+    end
+    object cbGameType: TComboBox
+      Position.X = 84.000000000000000000
+      Position.Y = 38.000000000000000000
+      TabOrder = 5
+      object lbiPong: TListBoxItem
+        IsSelected = True
+        TabOrder = 0
+        Text = 'Pong'
+      end
+    end
+    object edtGameName: TEdit
+      Touch.InteractiveGestures = [LongTap, DoubleTap]
+      TabOrder = 1
+      Position.X = 84.000000000000000000
+      Position.Y = 8.000000000000000000
+    end
+    object lblGType: TLabel
+      Position.X = 8.000000000000000000
+      Position.Y = 38.000000000000000000
+      Size.Width = 80.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+      Text = 'Game Type'
+      TabOrder = 0
+    end
+    object lblName: TLabel
+      Position.X = 8.000000000000000000
+      Position.Y = 8.000000000000000000
+      Size.Width = 80.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+      Text = 'Game Name'
+      TabOrder = 2
+    end
+  end
+end

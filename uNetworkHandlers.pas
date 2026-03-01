@@ -188,7 +188,7 @@ class procedure TuNetworkHandler.CHATHandler(const aP: TuPacket);
 begin
    with NetMgr do begin
       LogtoUI(aP.FData);
-   end;
+   end; {WITH}
 end;
 
 class procedure TuNetworkHandler.HTBHandler(const aP: TuPacket);
@@ -241,7 +241,6 @@ class procedure TuNetworkHandler.ServerCHATHandler(const aP: TuPacket);
 begin
    with NetMgr do begin
       Send(aP);
-      LogtoUI(aP.FData);
    end;
 end;
 class procedure TuNetworkHandler.HubCHATHandler   (const aP: TuPacket);

@@ -14,25 +14,13 @@ object xfraNetMenu: TxfraNetMenu
       Size.Width = 513.000000000000000000
       Size.Height = 137.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 0
+      TabOrder = 1
       DisableFocusEffect = True
       DefaultItemStyles.ItemStyle = ''
       DefaultItemStyles.GroupHeaderStyle = ''
       DefaultItemStyles.GroupFooterStyle = ''
       Viewport.Width = 509.000000000000000000
       Viewport.Height = 133.000000000000000000
-    end
-    object memInfo: TMemo
-      Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
-      DataDetectorTypes = []
-      Position.X = 48.000000000000000000
-      Position.Y = 224.000000000000000000
-      Size.Width = 513.000000000000000000
-      Size.Height = 209.000000000000000000
-      Size.PlatformDefault = False
-      TabOrder = 1
-      Viewport.Width = 509.000000000000000000
-      Viewport.Height = 205.000000000000000000
     end
     object btnJoinGame: TButton
       Position.X = 360.000000000000000000
@@ -70,6 +58,20 @@ object xfraNetMenu: TxfraNetMenu
       Position.Y = 24.000000000000000000
       Text = 'Mode: None'
       TabOrder = 5
+    end
+    object lstMessages: TListBox
+      Position.X = 48.000000000000000000
+      Position.Y = 224.000000000000000000
+      Size.Width = 513.000000000000000000
+      Size.Height = 214.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 0
+      DisableFocusEffect = True
+      DefaultItemStyles.ItemStyle = ''
+      DefaultItemStyles.GroupHeaderStyle = ''
+      DefaultItemStyles.GroupFooterStyle = ''
+      Viewport.Width = 509.000000000000000000
+      Viewport.Height = 210.000000000000000000
     end
   end
 end

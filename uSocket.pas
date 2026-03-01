@@ -5,7 +5,6 @@ interface
 uses
    uNetworkTypes,
    System.Classes,
-//   System.Generics.Collections,
    System.Threading,
    System.SysUtils,
    Winapi.Winsock2;
@@ -21,6 +20,7 @@ type
          FOnDataReceived : TOnDataReceived;
          FOnConnect      : TClientConnectEvent;
 
+         FIsConnected    : Boolean;
       public
          constructor Create(aProtocol: TuNetProtocol; aPort: Integer); overload;
          constructor Create(aSocket: TSocket;
@@ -41,6 +41,7 @@ type
          class function IpFromASocket(aSocket: TSocket): String;
          class function PortFromASocket(aSocket: TSocket): U_Short;
 
+         property IsConnected    : Boolean             read FIsConnected;
          property Address        : SockAddr_In         read FAddress;
          property Port           : U_Short             read FAddress.Sin_Port;
          property Get            : TSocket             read FSocket;
@@ -90,6 +91,9 @@ begin
    aA.Sin_Addr.S_Addr := INADDR_ANY;
    FAddress           := aA;
    FProtocol          := aProtocol;
+
+   if aProtocol = npUDP then
+      FisConnected := True;
 end;
 
 constructor TuSocket.Create(aSocket: TSocket;
@@ -101,6 +105,8 @@ begin
    FSocket         := aSocket;
    FProtocol       := npTCP;
    FOnDataReceived := aOnData;
+   FIsConnected    := True;
+
    FReadThread     := TuReadThread.Create(Self, OnDataReceived);
    FReadThread.Start;
 end;
@@ -139,6 +145,7 @@ begin
 
    if WinApi.Winsock2.Connect(FSocket, SockAddr(aAddr), SizeOf(aAddr)) = 0 then begin
       Result := True;
+      FIsConnected := True;
 
       if Assigned(FReadThread) then begin
          FReadThread.Start;

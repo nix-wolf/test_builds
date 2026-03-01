@@ -11,6 +11,7 @@ uses
    System.Variants,
    uNetManager,
    uNetworkTypes,
+   uxfraHostMenu,
    FMX.Types,
    FMX.Graphics,
    FMX.Controls,
@@ -29,12 +30,13 @@ uses
 type
    TxfraNetMenu = class(TFrame)
       lstGames    : TListBox;
+      lstMessages : TListBox;
       lLayout     : TLayout;
-      memInfo     : TMemo;
       btnJoinGame : TButton;
       btnHostGame : TButton;
       edtChat     : TEdit;
       lblStatus   : TLabel;
+
       procedure btnHostGameClick(Sender     : TObject);
       procedure btnJoinGameClick(Sender     : TObject);
       procedure edtChatKeyPress(Sender      : TObject;
@@ -44,7 +46,7 @@ type
 
       private
          FNetworkManager: TNetManager;
-         procedure HandleNetworkLogging(const aMsg: String);
+         procedure HandleNetworkLogging(const aMsg: String; aMsgType: TuMessageType);
          procedure HandleRoleChange(const aRole: TuNetworkRole);
          procedure UpdateRoleUI(const aRole: TuNetworkRole);
       public
@@ -59,9 +61,17 @@ implementation
 
 {$R *.fmx}
 
+uses
+   uxfrmBase,
+   uxfrmLoader;
+
 procedure TxfraNetMenu.btnHostGameClick(Sender: TObject);
+   var
+      aForm: TForm;
 begin
-  //
+   aForm := TForm(Self.Root.GetObject);
+
+   TxFrmBase(aForm).Loader.LoadFrame(TxFraHostMenu, True, Self);
 end;
 
 procedure TxfraNetMenu.btnJoinGameClick(Sender: TObject);
@@ -76,9 +86,9 @@ begin
    FNetworkManager.OnLog        := HandleNetworkLogging;
    FNetworkManager.OnRoleChange := HandleRoleChange;
    edtChat.OnKeyDown            := edtChatKeyPress;
-   memInfo.Lines.Add('Network Frame Initalized...');
 
    FNetworkManager.Start;
+   HandleNetworkLogging('Network Mananger Initalized...');
 end;
 
 destructor TxfraNetMenu.Destroy;
@@ -102,11 +112,15 @@ begin
    end; {IF}
 end;
 
-procedure TxfraNetMenu.HandleNetworkLogging(const aMsg: String);
+procedure TxfraNetMenu.HandleNetworkLogging(const aMsg: String; aMsgType: TuMessageType);
 begin
-   var aString      := FormatDateTime('hh:nn:ss', Now);
-   memInfo.Lines.Add(Format('[%s]::> %s', [aString, aMsg]));
-   memInfo.SelStart := Length(memInfo.Text);
+   var aColor: TAlphaColor;
+
+   var aString := FormatDateTime('hh:nn:ss', Now);
+   var aItem   := TListBoxItem.Create(lstMessages);
+   aItem.FontColor := aColor;
+   aItem.Text  := aString;
+//   memInfo.Lines.Add(Format('[%s]::> %s', [aString, aMsg]));
 end;
 
 procedure TxfraNetMenu.HandleRoleChange(const aRole: TuNetworkRole);

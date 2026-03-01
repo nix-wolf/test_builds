@@ -3,14 +3,24 @@ unit uNetworkTypes;
 interface
 
 uses
+   System.UITypes,
    System.Rtti,
    Winapi.Winsock2,
    System.SysUtils;
 
 type
    TuNetworkRole = (nrNone, nrClient, nrServer, nrHub);
+   TuMessageType = (mtSystem, mtError, mtIn, mtLocal);
    TuPacketFlag  = (pfCHAT, pfVEWLF, pfSES, pfJOIN, pfUPD, pfHTB, pfCLS, pfKIL, pfSHFT);
    TuNetProtocol = (npUDP, npTCP);
+
+   TuLogEventData = record
+      FMsg      : String;
+      FColor    : TAlphaColor;
+      TimeStamp : TDateTIme;
+
+      function ColorFromType(aType: TuMessageType); TAlphaColorRec;
+   end;
 
    TuGameSession = record
       FHostIP      : String;
@@ -53,7 +63,7 @@ type
    TuPacketHandler     = reference to procedure(const P: TuPacket);
    TClientConnectEvent = procedure(aSocket: TSocket; aAddr: SockAddr_In) of Object;
    TOnDataReceived     = procedure(const aIP, aData: String) of Object;
-   TUIEvent            = procedure(const aData: String) of Object;
+   TUIEvent            = procedure(const aData: String; aColor: TAlphaColor) of Object;
 
 
 implementation
@@ -129,4 +139,12 @@ begin
       Roles[aCurrentRole](P);
 end;
 
+function TuLogEventData.ColorFromType(aType: TuMessageType); TAlphaColorRec;
+begin
+   cast aType of
+      mtSystem : Result := TAlphaColorRec.Green;
+      mtIn     : Result := TAlphaColorRec.Black;
+      mtLocal  : Result := TAlphaColorRec.Blue;
+      mtError  : Result := TAlphaColorRec.Red;
+   end;
 end.

@@ -38,19 +38,27 @@ var
 
 implementation
 
-uses uxfrmLoader;
+uses uxfrmLoader,
+     uxfrmBase;
 
 {$R *.fmx}
 
 procedure TxfraMainMenu.btnMultiButtonClick(Sender: TObject);
+   var
+      aForm: TForm;
 begin
-   TxfrmLoader(Parent).PushFrame(TxfraNetMenu);
+   aForm := TForm(Self.Root.GetObject);
+
+   TxFrmBase(aForm).Loader.LoadFrame(TxfraNetMenu, True);
 end;
 
 procedure TxfraMainMenu.btnSinglePlayerClick(Sender: TObject);
+   var
+      aForm: TForm;
 begin
-//pong needs to be renamed to fra, its a frame not a form
-   TxfrmLoader(Parent).PushFrame(TxfrmPong);
+   aForm := TForm(Self.Root.GetObject);
+
+   TxFrmBase(aForm).Loader.LoadFrame(TxfrmPong, True);
 end;
 
 end.

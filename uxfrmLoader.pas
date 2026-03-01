@@ -11,11 +11,6 @@ uses
    System.Generics.Collections,
    uxfraPong,
    uxfraSnake,
-   uxfraMainMenu,
-   Vcl.Forms,
-   Vcl.ExtCtrls,
-   Vcl.StdCtrls,
-   Vcl.Controls,
    FMX.Types,
    FMX.Graphics,
    FMX.Controls,
@@ -28,22 +23,17 @@ uses
 type
    TFrameClass = class of TFrame;
 
-   TxfrmLoader = class(TForm)
-      sldLayout   : TScaledLayout;
-      btnExit     : TButton;
-      panViewPort : TPanel;
-
-      procedure FormShow(Sender: TObject);
-      procedure btnExitClick(Sender: TObject);
-
+   TxfrmLoader = class
+      sldLayout     : TScaledLayout;
       private
-         FFrames : TStack<TFrameClass>;
-         FFrame  : TFrame;
+         FContainer : TControl;
+         FFrames    : TObjectList<TFrame>;
       public
-         procedure SwitchFrame(aFrameClass: TFrameClass);
-         procedure PopFrame();
-         procedure PushFrame(aFrameClass: TFrameClass);
-         procedure UpdateBackButton;
+         constructor Create(aContainer: TControl);
+         destructor Destroy; override;
+
+         function LoadFrame(aFC: TFrameClass; aActive: Boolean = True; aFrame: TFrame = nil): TFrame;
+         procedure PopFrame(aFrame: TFrame = nil);
    end;
 
 var
@@ -53,52 +43,65 @@ implementation
 
 {$R *.fmx}
 
-procedure TxfrmLoader.btnExitClick(Sender: TObject);
+constructor TxfrmLoader.Create(aContainer: TControl);
 begin
-   PopFrame();
+   inherited Create;
+   FContainer := aContainer;
+
+   FFrames := TObjectList<TFrame>.Create(True);
 end;
 
-procedure TxfrmLoader.FormShow(Sender: TObject);
+function TxfrmLoader.LoadFrame(aFC: TFrameClass; aActive: Boolean = True; aFrame: TFrame = nil): TFrame;
 begin
-   FFrames := TStack<TFrameClass>.Create;
-   PushFrame(TxfraMainMenu);
+   Result         := aFC.Create(FContainer);
+   Result.Parent  := FContainer;
+   Result.Align   := TAlignLayout.Center;
+   Result.Visible := aActive;
+
+   if Assigned(FFrames) then begin
+      for var i := 0 to FFrames.Count - 1 do begin
+         if Assigned(aFrame) and (FFrames[i] = aFrame) then begin
+            FFrames[i].Opacity := 0.5;
+            break;
+         end;
+
+         FFrames[i].Visible := False;
+      end;
+
+      FFrames.Add(Result);
+   end;
 end;
 
-procedure TxfrmLoader.PopFrame;
+procedure TxfrmLoader.PopFrame(aFrame: TFrame);
+   var
+      aTarget: TFrame;
 begin
-   if FFrames.Count > 1 then begin
-      FFrames.Pop;
-      PushFrame(FFrames.Pop);
-   end; {IF}
+   if FFrames.Count = 0 then Exit;
+
+   aTarget := aFrame;
+   if aTarget = nil then aTarget := FFrames.Last;
+
+   aTarget.AnimateFloat('Opacity', 0, 0.3);
+
+   FFrames.Remove(aTarget);
+
+   if FFrames.Count > 0 then
+   begin
+      FFrames.Last.Visible := True;
+      FFrames.Last.Opacity := 1.0;
+      FFrames.Last.BringToFront;
+   end;
 end;
 
-procedure TxfrmLoader.PushFrame(aFrameClass: TFrameClass);
+//Will need to disable the back button in game but should exist every where
+//else. Will also need ot handle inactivating all the network components
+//when we close the multiplayer menu.
+
+destructor TxfrmLoader.Destroy;
 begin
-   FFrames.Push(aFrameClass);
-   SwitchFrame(aFrameClass);
-   UpdateBackButton;
+   FFrames.Free;
+   inherited Destroy;
 end;
 
-procedure TxfrmLoader.SwitchFrame(aFrameClass: TFrameClass);
-begin
-   if Assigned(FFrame) then
-      FreeAndNil(FFrame);
-
-   FFrame            := aFrameClass.Create(Self);
-   FFrame.Parent     := Self;
-   FFrame.Position.X := 0;
-   FFrame.Position.Y := 0;
-   FFrame.Align      := TAlignLayout.Client;
-   FFrame.CanFocus   := True;
-   FFrame.SetFocus;
-   Self.Realign;
-end;
-
-procedure TxfrmLoader.UpdateBackButton;
-begin
-   btnExit.Visible := FFrames.Count > 1;
-   btnExit.Parent  := Self;
-   btnExit.BringToFront;
-end;
 
 end.

@@ -3,6 +3,7 @@ unit uNetManager;
 interface
 
 uses
+   System.UITypes,
    Winapi.Winsock2,
    System.Generics.Collections,
    System.SysUtils,
@@ -78,6 +79,7 @@ type
          procedure UpdateRoleToUI;
 
 
+         class property IP                : String                  read FIP;
          class property UDP               : TuSocket                read FUDP;
          class property TCPClient         : TuSocket                read FTCPClient;
          class property TCPServer         : TuTCPServer             read FTCPServer;
@@ -210,24 +212,44 @@ begin
 end;
 
 procedure TNetManager.Send(aP: TuPacket);
+   var
+      aCmd: TuPacketFlag;
 begin
    //Probably should have a way to ensure the connection is good... active in the socket
+   aCmd := TRttiEnumerationType.GetValue<TuPacketFlag>(aP.FCommand);
+
    case FRole of
-      nrNone   : if Assigned(UDP) then UDP.Broadcast(aP.Parse, 6000);
-      nrClient : if Assigned(FTCPClient) then FTCPClient.Send(aP.Parse, '', 0);
-      nrServer,
-      nrHub    : if Assigned(FTCPServer) then begin
-         FTCPServer.Broadcast(aP);
-         if pfChat = TRttiEnumerationType.GetValue<TuPacketFlag>(aP.FCommand) then
-            LogToUI(aP.FData);
-
+      nrNone: begin
+         if Assigned(UDP) and UDP.IsConnected then begin
+            UDP.Broadcast(aP.Parse, 6000);
+            Exit;
+         end;
       end;
+      nrClient: begin
+         if Assigned(FTCPClient) and FTCPClient.IsConnected then begin
+            FTCPClient.Send(aP.Parse, '', 0);
+            Exit;
+         end;
+      end;
+      nrServer,
+      nrHub: begin
+         if Assigned(FTCPServer) then begin
+            case aCmd of
+               pfCHAT: LogToUI(aP.FData);
+               pfVEWLF: LogToUI('Responding to a Hub Search Query');
+               pfSES: {here now.};
+               pfJOIN: {Handle info for join to respective parties};
+               pfKIL: {causes connection to drop};
+               pfSHFT: {sending a shift will dump data for other hub};
+            end;
+
+            FTCPServer.Broadcast(aP);
+            Exit;
+         end;{end}
+      end;
+
    end;
-
-
-//   if Assigned(FTCPClient) then
-
-
+   LogToUI('Not Connected');
 end;
 
 procedure TNetManager.UIEventCallback<T>(aEvent: TUiEvent<T>; aT: T);
@@ -239,8 +261,12 @@ begin
    end; {IF}
 end;
 
-procedure TNetManager.LogToUI(const aMsg: String);
-   begin UIEventCallback<String>(FOnLog, aMsg); end;
+procedure TNetManager.LogToUI(const aMsg: String; aColor TAlphaColor);
+begin
+
+
+   UIEventCallback<>(FOnLog, aMsg);
+end;
 
 procedure TNetManager.UpdateRoleToUI;
    begin UIEventCallback<TuNetworkRole>(FOnRoleChange, FRole); end;

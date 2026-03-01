@@ -117,7 +117,8 @@ begin
    TMonitor.Enter(FClients);
    try
       for aClient in FClients do begin
-         aClient.Send(aP);
+         if aClient.Socket.IsConnected then
+            aClient.Send(aP);
       end;
    finally
       TMonitor.Exit(FClients);
