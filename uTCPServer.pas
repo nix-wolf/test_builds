@@ -26,7 +26,7 @@ type
          FOnMsg        : TOnDataReceived;
          FOnConnect    : TClientConnectEvent;
          FOnDisconnect : TClientConnectEvent;
-         FOnLog        : TUIEvent;
+         FOnLog        : TUIEvent2<String, TuMessageType>;
 
          procedure LogToUI(const aMsg: String);
       public
@@ -41,10 +41,10 @@ type
          procedure Stop;
          procedure Broadcast(aP: TuPacket);
 
-         property OnMessage      : TOnDataReceived        read FOnMsg        write FOnMsg;
-         property OnConnected    : TClientConnectEvent    read FOnConnect    write FOnConnect;
-         property OnDisconnected : TClientConnectEvent    read FOnDisconnect write FOnDisconnect;
-         property OnLog          : TUIEvent               read FOnLog        write FOnLog;
+         property OnMessage      : TOnDataReceived                  read FOnMsg        write FOnMsg;
+         property OnConnected    : TClientConnectEvent              read FOnConnect    write FOnConnect;
+         property OnDisconnected : TClientConnectEvent              read FOnDisconnect write FOnDisconnect;
+         property OnLog          : TUIEvent2<String, TuMessageType> read FOnLog        write FOnLog;
 
    end;
 implementation
@@ -83,7 +83,7 @@ end;
 
 procedure TuTCPServer.LogToUI(const aMsg: String);
 begin
-   OnLog(aMsg);
+   OnLog(aMsg, mtSystem);
 end;
 
 procedure TuTCPServer.OnClientConnected(aClient: TuTCPRemoteClient);
@@ -93,7 +93,7 @@ end;
 
 procedure TuTCPServer.OnClientDisconnect(aClient: TuTCPRemoteClient);
 begin
-   if Assigned(FOnDisconnect) then
+//   if Assigned(FOnDisconnect) then
 //      FOnDisconnect(aClient);
 
    TMonitor.Enter(FClients);

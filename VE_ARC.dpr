@@ -16,7 +16,8 @@ uses
   uNetworkDispatcher in 'uNetworkDispatcher.pas',
   uNetworkHandlers in 'uNetworkHandlers.pas',
   uSocket in 'uSocket.pas',
-  uTCPRemoteClient in 'uTCPRemoteClient.pas';
+  uTCPRemoteClient in 'uTCPRemoteClient.pas',
+  uxfrmBase in 'uxfrmBase.pas' {xfrmBase};
 
 {}
 
@@ -24,7 +25,7 @@ uses
 
 begin
   Application.Initialize;
-  Application.CreateForm(TxfrmLoader, xfrmLoader);
+  Application.CreateForm(TxfrmBase, xfrmBase);
   Application.Run;
 end.
 

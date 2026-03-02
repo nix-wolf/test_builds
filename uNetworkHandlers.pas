@@ -187,7 +187,7 @@ end;
 class procedure TuNetworkHandler.CHATHandler(const aP: TuPacket);
 begin
    with NetMgr do begin
-      LogtoUI(aP.FData);
+      LogtoUI(aP.FData, mtIn);
    end; {WITH}
 end;
 

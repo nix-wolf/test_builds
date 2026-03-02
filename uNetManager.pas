@@ -45,7 +45,7 @@ type
          FName               : String; //is the user name
          FIP                 : String;
 
-         FOnLog              : TUIEvent<String>;
+         FOnLog              : TUIEvent<TuLogEventData>;
          FOnRoleChange       : TUIEvent<TuNetworkRole>;
 
          //timer functions
@@ -63,7 +63,8 @@ type
          procedure OnConnected         (aSocket: TSocket; aAddr: SockAddr_In);
          procedure OnDisconnected      (aSocket: TSocket; aAddr: SockAddr_In);
          //Wrapper for UI events to return data to the ui
-         procedure UIEventCallback<T>  (aEvent: TUIEvent<T>; aT: T);
+         procedure UIEventCallback<T>  (aEvent: TUIEvent<T>; aT: T); overload;
+         procedure UIEventCallback<T, T2>  (aEvent: TUIEvent2<T, T2>; aT: T; aT2: T2); overload;
 
          function GetLocalIP: string;
       public
@@ -75,20 +76,20 @@ type
          procedure Connect(const aIP: String; const aPort: Integer);
          procedure Send(aP: TuPacket);
          //call backs for returning data to parent frame
-         procedure LogToUI             (const aMsg: String);
+         procedure LogToUI(aMsg: String; aType: TuMessageType);
          procedure UpdateRoleToUI;
 
 
-         class property IP                : String                  read FIP;
-         class property UDP               : TuSocket                read FUDP;
-         class property TCPClient         : TuSocket                read FTCPClient;
-         class property TCPServer         : TuTCPServer             read FTCPServer;
-         class property ServerPort        : Integer                 read FServerPort;
-         class property Role              : TuNetworkRole           read FRole              write FRole;
-         class property BroadcastTimer    : TTimer                  read FBroadcastTimer    write FBroadcastTimer;
-         class property OnLog             : TUIEvent<String>        read FOnLog             write FOnLog;
-         class property OnRoleChange      : TUIEvent<TuNetworkRole> read FOnRoleChange      write FOnRoleChange;
-         class property DiscoveryAttempts : Integer                 read FDiscoveryAttempts write FDiscoveryAttempts;
+         class property IP                : String                   read FIP;
+         class property UDP               : TuSocket                 read FUDP;
+         class property TCPClient         : TuSocket                 read FTCPClient;
+         class property TCPServer         : TuTCPServer              read FTCPServer;
+         class property ServerPort        : Integer                  read FServerPort;
+         class property Role              : TuNetworkRole            read FRole              write FRole;
+         class property BroadcastTimer    : TTimer                   read FBroadcastTimer    write FBroadcastTimer;
+         class property OnLog             : TUIEvent<TuLogEventData> read FOnLog             write FOnLog;
+         class property OnRoleChange      : TUIEvent<TuNetworkRole>  read FOnRoleChange      write FOnRoleChange;
+         class property DiscoveryAttempts : Integer                  read FDiscoveryAttempts write FDiscoveryAttempts;
 
          class function Get               : TNetManager;
    end;
@@ -186,7 +187,7 @@ begin
       end {IF}
       else begin
          UpdateRoleToUI;
-         LogToUI('Checking for Active Hub');
+         LogToUI('Checking for Active Hub', mtSystem);
          //should be making a proper packet here
          FUDP.Broadcast(TuPacket.Create(pfVEWLF, '').Parse, FServerPort);
          Inc(FDiscoveryAttempts);
@@ -198,7 +199,7 @@ procedure TNetManager.OnCleanUpTimer(aSender: TObject);
    var
       i: Integer;
 begin
-   LogToUI('Cleaning Up Sessions.');
+   LogToUI('Cleaning Up Sessions.', mtSystem);
    TMonitor.Enter(FActiveSessions);
    try
       for i := FActiveSessions.Count - 1 downto 0 do begin
@@ -214,6 +215,7 @@ end;
 procedure TNetManager.Send(aP: TuPacket);
    var
       aCmd: TuPacketFlag;
+      aLogMsg: TuLogEventData;
 begin
    //Probably should have a way to ensure the connection is good... active in the socket
    aCmd := TRttiEnumerationType.GetValue<TuPacketFlag>(aP.FCommand);
@@ -235,8 +237,8 @@ begin
       nrHub: begin
          if Assigned(FTCPServer) then begin
             case aCmd of
-               pfCHAT: LogToUI(aP.FData);
-               pfVEWLF: LogToUI('Responding to a Hub Search Query');
+               pfCHAT: LogToUI(aP.FData, mtLocal);
+               pfVEWLF: LogToUI('Responding to a Hub Search Query', mtSystem);
                pfSES: {here now.};
                pfJOIN: {Handle info for join to respective parties};
                pfKIL: {causes connection to drop};
@@ -249,7 +251,7 @@ begin
       end;
 
    end;
-   LogToUI('Not Connected');
+   LogToUI('Not Connected', mtSystem);
 end;
 
 procedure TNetManager.UIEventCallback<T>(aEvent: TUiEvent<T>; aT: T);
@@ -261,11 +263,22 @@ begin
    end; {IF}
 end;
 
-procedure TNetManager.LogToUI(const aMsg: String; aColor TAlphaColor);
+procedure TNetManager.UIEventCallback<T, T2>(aEvent: TUiEvent2<T, T2>; aT: T; aT2: T2);
 begin
+   if Assigned(aEvent) then begin
+      TThread.Queue(nil, procedure begin
+         aEvent(aT, aT2);
+      end);{PROCEDURE}
+   end; {IF}
+end;
 
+procedure TNetManager.LogToUI(aMsg: String; aType: TuMessageType);
+   var
+      aLogMsg  : TuLogEventData;
+begin
+   aLogMsg := TuLogEventData.Create(aMsg, aType);
 
-   UIEventCallback<>(FOnLog, aMsg);
+   UIEventCallback<TuLogEventData>(FOnLog, aLogMsg);
 end;
 
 procedure TNetManager.UpdateRoleToUI;
@@ -308,6 +321,7 @@ end;
 procedure TNetManager.Connect(const aIP: String; const aPort: Integer);
    var
       aConnection: Boolean;
+      aLogMsg  : TuLogEventData;
 begin
    FTCPClient.OnDataReceived := OnTCPMessage;
    aConnection               := FTCPClient.Connect(aIP, aPort);
@@ -320,10 +334,7 @@ procedure TNetManager.OnConnect(aSender: TObject);
    var
       aIP, aPort: String;
 begin
-   aIP   := FTCPClient.IpFromASocket(FTCPClient.Get);
-   aPort := IntToStr(FTCPClient.Port);
-
-   LogToUI('Connected to: ' + aIP + '@' + aPort);
+   LogToUI('Connected to: ' + aIP + '@' + aPort, mtSystem);
 end;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -335,6 +346,7 @@ procedure TNetManager.OnConnected(aSocket: TSocket; aAddr: SockAddr_In);
       aRConn   : TuTCPRemoteClient;
       aUSocket : TuSocket;
       aP       : TuPacket;
+
 begin
 
    aUSocket := TuSocket.Create(
@@ -356,7 +368,8 @@ begin
    aP.FIP := aRConn.IP;
    aRConn.Send(aP);
 
-   LogToUI('Connection Established: ' + aRConn.IP + '@' + IntToStr(aRConn.Port) + ': Welcome Message Sent');
+   var aMsg := 'Connection Established: ' + aRConn.IP + '@' + IntToStr(aRConn.Port) + ': Welcome Message Sent';
+   LogToUI(aMsg, mtSystem);
 end;
 
 procedure TNetManager.OnDisconnected(aSocket: TSocket; aAddr: SockAddr_In);
@@ -365,8 +378,11 @@ begin
 end;
 
 procedure TNetManager.StartHub(const aPort: Integer);
+   var
+      aLogMsg  : TuLogEventData;
 begin
-   LogToUI('Starting Lobby Server...');
+
+   LogToUI('Starting Lobby Server...', mtSystem);
    FTCPServer                := TuTCPServer.Create;
    FTCPServer.OnMessage      := OnTCPMessage;
    FTCPServer.OnLog          := LogToUI;

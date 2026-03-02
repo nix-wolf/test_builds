@@ -18,9 +18,10 @@ type
       FMsg      : String;
       FType	: TuMessageType;
       FColor    : TAlphaColor;
-      TimeStamp : TDateTIme;
+      FTimeStamp : TDateTIme;
 
-      function ColorFromType(aType: TuMessageType); TAlphaColorRec;
+      class function Create(aMsg: String; aType: TuMessageType): TuLogEventData ; static;
+      class function ColorFromType(aType: TuMessageType):        TAlphaColor    ; static;
    end;
 
    TuGameSession = record
@@ -64,7 +65,9 @@ type
    TuPacketHandler     = reference to procedure(const P: TuPacket);
    TClientConnectEvent = procedure(aSocket: TSocket; aAddr: SockAddr_In) of Object;
    TOnDataReceived     = procedure(const aIP, aData: String) of Object;
-   TUIEvent            = procedure(const aData: String; aColor: TAlphaColor) of Object;
+   TUIEvent<T>         = procedure(aT: T) of Object;
+   TUIEvent2<T, T2>    = procedure(aT: T; aT2: T2) of Object;
+   TLogEvent           = procedure(aMsg: String; aType: TuMessageType);
 
 
 implementation
@@ -140,12 +143,24 @@ begin
       Roles[aCurrentRole](P);
 end;
 
-function TuLogEventData.ColorFromType(aType: TuMessageType); TAlphaColorRec;
+{ TuLogEventData }
+
+class function TuLogEventData.Create(aMsg: String; aType: TuMessageType): TuLogEventData;
 begin
-   cast aType of
-      mtSystem : Result := TAlphaColorRec.Green;
-      mtIn     : Result := TAlphaColorRec.Black;
-      mtLocal  : Result := TAlphaColorRec.Blue;
-      mtError  : Result := TAlphaColorRec.Red;
+   Result.FMsg       := aMsg;
+   Result.FType      := aType;
+   Result.FColor     := TuLogEventData.ColorFromType(aType);
+   Result.FTimeStamp := Now;
+end;
+
+class function TuLogEventData.ColorFromType(aType: TuMessageType): TAlphaColor;
+begin
+   case aType of
+      mtSystem : Result := TAlphaColorRec.Green ;
+      mtIn     : Result := TAlphaColorRec.Blue  ;
+      mtLocal  : Result := TAlphaColorRec.Black ;
+      mtError  : Result := TAlphaColorRec.Red   ;
    end;
+end;
+
 end.

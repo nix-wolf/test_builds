@@ -46,7 +46,7 @@ type
 
       private
          FNetworkManager: TNetManager;
-         procedure HandleNetworkLogging(const aMsg: String; aMsgType: TuMessageType);
+         procedure HandleNetworkLogging(const aLogData: TuLogEventData);
          procedure HandleRoleChange(const aRole: TuNetworkRole);
          procedure UpdateRoleUI(const aRole: TuNetworkRole);
       public
@@ -80,6 +80,8 @@ begin
 end;
 
 constructor TxfraNetMenu.Create(aOwner: TComponent);
+   var
+      aLogMsg: TuLogEventData;
 begin
    inherited Create(aOwner);
    FNetworkManager              := TNetManager.Get;
@@ -88,7 +90,8 @@ begin
    edtChat.OnKeyDown            := edtChatKeyPress;
 
    FNetworkManager.Start;
-   HandleNetworkLogging('Network Mananger Initalized...');
+   aLogMsg := TuLogEventData.Create('Network Mananger Initalized...', mtSystem);
+   HandleNetworkLogging(aLogMsg);
 end;
 
 destructor TxfraNetMenu.Destroy;
@@ -112,15 +115,14 @@ begin
    end; {IF}
 end;
 
-procedure TxfraNetMenu.HandleNetworkLogging(const aMsg: String; aMsgType: TuMessageType);
+procedure TxfraNetMenu.HandleNetworkLogging(const aLogData: TuLogEventData);
 begin
-   var aColor: TAlphaColor;
+   var aString     := FormatDateTime('hh:nn:ss', aLogData.FTimestamp);
+   var aItem       := TListBoxItem.Create(lstMessages);
+   aItem.FontColor := aLogData.FColor;
+   aItem.Text  := Format('[%s]::> %s', [aString, aLogData.FMsg]);
 
-   var aString := FormatDateTime('hh:nn:ss', Now);
-   var aItem   := TListBoxItem.Create(lstMessages);
-   aItem.FontColor := aColor;
-   aItem.Text  := aString;
-//   memInfo.Lines.Add(Format('[%s]::> %s', [aString, aMsg]));
+   lstMessages.AddObject(aItem);
 end;
 
 procedure TxfraNetMenu.HandleRoleChange(const aRole: TuNetworkRole);
