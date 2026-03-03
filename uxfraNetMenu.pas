@@ -46,6 +46,8 @@ type
 
       private
          FNetworkManager: TNetManager;
+         aSelectedSession: TuGameSession;
+
          procedure HandleNetworkLogging(const aLogData: TuLogEventData);
          procedure HandleRoleChange(const aRole: TuNetworkRole);
          procedure UpdateRoleUI(const aRole: TuNetworkRole);
@@ -119,8 +121,9 @@ procedure TxfraNetMenu.HandleNetworkLogging(const aLogData: TuLogEventData);
 begin
    var aString     := FormatDateTime('hh:nn:ss', aLogData.FTimestamp);
    var aItem       := TListBoxItem.Create(lstMessages);
-   aItem.FontColor := aLogData.FColor;
+   aItem.StyledSettings := aItem.StyledSettings - [TStyledSetting.FontColor];
    aItem.Text  := Format('[%s]::> %s', [aString, aLogData.FMsg]);
+   aItem.FontColor := aLogData.FColor;
 
    lstMessages.AddObject(aItem);
 end;

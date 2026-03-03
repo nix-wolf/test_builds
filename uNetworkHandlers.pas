@@ -221,6 +221,7 @@ end;
 //// pfHTB HANDLERS::
 ///////////////////////////////////////////////////////////////////////////////
 
+//send dont receive only hub receives these
 class procedure TuNetworkHandler.ClientHTBHandler(const aP: TuPacket);
    begin HTBHandler(aP); end;
 class procedure TuNetworkHandler.ServerHTBHandler(const aP: TuPacket);
@@ -255,6 +256,7 @@ begin
 
 end;
 
+//server and client can probalbly be the same untill your join the game and switch over
 class procedure TuNetworkHandler.ServerSESHandler(const aP: TuPacket);
 begin
 
@@ -262,7 +264,7 @@ end;
 
 class procedure TuNetworkHandler.HubSESHandler(const aP: TuPacket);
 begin
-
+   //add to sessions
 end;
 
 ///////////////////////////////////////////////////////////////////////////////

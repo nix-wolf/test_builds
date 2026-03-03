@@ -48,12 +48,22 @@ implementation
 constructor TxfrmBase.Create(aOwner: TComponent);
 begin
    inherited Create(AOwner);
-
-   FLoader := TxFrmLoader.Create(lytContainer);
 end;
 
 procedure TxfrmBase.FormCreate(aSender: TObject);
 begin
+   Self.BorderStyle := TFmxFormBorderStyle.Single;
+   Self.BorderIcons := [TBorderIcon.biSystemMenu, TBorderIcon.biMinimize];
+   Self.ClientWidth  := 1024;
+   Self.ClientHeight := 768;
+   Self.Constraints.MinWidth  := 1024;
+   Self.Constraints.MaxWidth  := 1024;
+   Self.Constraints.MinHeight := 768;
+   Self.Constraints.MaxHeight := 768;
+
+   lytContainer.Align := TAlignLayout.Contents;
+   FLoader := TxFrmLoader.Create(lytContainer);
+
    FLoader.LoadFrame(TxfraMainMenu, True);
 end;
 

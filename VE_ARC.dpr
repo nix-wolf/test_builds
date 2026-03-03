@@ -17,7 +17,9 @@ uses
   uNetworkHandlers in 'uNetworkHandlers.pas',
   uSocket in 'uSocket.pas',
   uTCPRemoteClient in 'uTCPRemoteClient.pas',
-  uxfrmBase in 'uxfrmBase.pas' {xfrmBase};
+  uxfrmBase in 'uxfrmBase.pas' {xfrmBase},
+  uxfraHostMenu in 'uxfraHostMenu.pas' {xFraHostMenu: TFrame},
+  uxfraSessionItem in 'uxfraSessionItem.pas' {TuxfraSessionItem: TFrame};
 
 {}
 
@@ -26,6 +28,7 @@ uses
 begin
   Application.Initialize;
   Application.CreateForm(TxfrmBase, xfrmBase);
+  Application.CreateForm(TxFraHostMenu, xFraHostMenu);
   Application.Run;
 end.
 

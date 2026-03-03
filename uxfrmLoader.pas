@@ -47,21 +47,29 @@ constructor TxfrmLoader.Create(aContainer: TControl);
 begin
    inherited Create;
    FContainer := aContainer;
-
    FFrames := TObjectList<TFrame>.Create(True);
 end;
 
 function TxfrmLoader.LoadFrame(aFC: TFrameClass; aActive: Boolean = True; aFrame: TFrame = nil): TFrame;
 begin
-   Result         := aFC.Create(FContainer);
-   Result.Parent  := FContainer;
-   Result.Align   := TAlignLayout.Center;
-   Result.Visible := aActive;
+   Result             := aFC.Create(FContainer);
+   Result.Parent      := FContainer;
+   Result.Align       := TAlignLayout.Center;
+   Result.Visible     := aActive;
+   Result.CanFocus    := True;
+   Result.AutoCapture := True;
+
+   Result.Width := FContainer.Width;
+   Result.Height := FContainer.Height;
+
+   Result.BringToFront;
+   Result.SetFocus;
 
    if Assigned(FFrames) then begin
       for var i := 0 to FFrames.Count - 1 do begin
          if Assigned(aFrame) and (FFrames[i] = aFrame) then begin
             FFrames[i].Opacity := 0.5;
+            Result.Align       := TAlignLayout.Center;
             break;
          end;
 

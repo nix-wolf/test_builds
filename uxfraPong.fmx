@@ -1,14 +1,14 @@
 object xfrmPong: TxfrmPong
-  Size.Width = 759.000000000000000000
-  Size.Height = 577.000000000000000000
+  Size.Width = 636.000000000000000000
+  Size.Height = 476.000000000000000000
   Size.PlatformDefault = False
   OnKeyDown = FrameKeyDown
   OnKeyUp = FrameKeyUp
   OnMouseDown = FrameMouseDown
   object recBackground: TRectangle
     Align = Contents
-    Size.Width = 759.000000000000000000
-    Size.Height = 577.000000000000000000
+    Size.Width = 636.000000000000000000
+    Size.Height = 476.000000000000000000
     Size.PlatformDefault = False
   end
   object recPlayer2: TRectangle

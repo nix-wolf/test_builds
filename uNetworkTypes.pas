@@ -3,6 +3,8 @@ unit uNetworkTypes;
 interface
 
 uses
+   FMX.Forms,
+   FMX.ListBox,
    System.UITypes,
    System.Rtti,
    Winapi.Winsock2,
@@ -33,7 +35,9 @@ type
       FLastSeen    : TDateTime;
 
       function  ToNetworkString: String;
+      function  ToListItem(aListBox: TListBox): TListBoxItem;
       procedure FromNetworkString(aData: String);
+
    end;
 
    TuPacket = record
@@ -87,6 +91,18 @@ begin
       FMaxPlayers  := StrToIntDef(aNetworkObject[4], 0);
    end; {IF}
    //session data isnt returned yet.
+end;
+
+function TuGameSession.ToListItem(aListBox: TListBox): TListBoxItem;
+   var
+      aFrame: TFrame;
+begin
+   Result        := TListBoxItem.Create(aListBox);
+   Result.Parent := aListBox;
+   Result.Height := 40;
+
+//   aFrame:=
+
 end;
 
 function TuGameSession.ToNetworkString: String;

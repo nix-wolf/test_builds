@@ -3,6 +3,7 @@ unit uxfraPong;
 interface
 
 uses
+   System.IOUtils,
    System.SysUtils,
    System.Types,
    System.UITypes,
@@ -10,6 +11,7 @@ uses
    System.Variants,
    System.Math,
    System.DateUtils,
+   FMX.Media,
    FMX.Types,
    FMX.Controls,
    FMX.Forms,
@@ -49,12 +51,14 @@ type
       FGameTime        : TDateTime;
       FKeyUpPressed    : Boolean;
       FKeyDownPressed  : Boolean;
+      FBallBounce      : TMediaPlayer;
 
+      procedure PlayBounce;
    const
       cPlayerWidth  = 10.0;
       cEdgeOffset   = 50.0;
-      cBallSpeed    = 5.0;
-      cPlayerSpeed  = 3.5;
+      cBallSpeed    = 10.0;
+      cPlayerSpeed  = 8.5;
       cPlayerHeight = 75.0;
 
    protected
@@ -79,9 +83,15 @@ begin
 
    Randomize;
    FObjColor                := TAlphaColorRec.Chartreuse;
+
    recBackground.Fill.Kind  := TBrushKind.Solid;
    recBackground.Fill.Color := TAlphaColorRec.Black;
    recBackground.HitTest    := false;
+
+   FBallBounce := TMediaPlayer.Create(Self);
+   var aSoundPath := System.IOUtils.TPath.Combine(System.IOUtils.TPath.GetDirectoryName(ParamStr(0)), 'bounce.mp3');
+   if TFile.Exists(aSoundPath) then
+      FBallBounce.FileName := aSoundPath;
 end;
 
 procedure TxfrmPong.Resize;
@@ -124,6 +134,15 @@ begin
    FGameTime          := Now();
 end;
 
+procedure TxfrmPong.PlayBounce;
+begin
+   if (FBallBounce <> nil) and (FBallBounce.Media <> nil) then
+   begin
+      FBallBounce.CurrentTime := 0;
+      FBallBounce.Play;
+   end;
+end;
+
 procedure TxfrmPong.SetupBall;
    var
       aYDirection: Integer;
@@ -149,6 +168,8 @@ end;
 procedure TxfrmPong.SetupBorder;
 begin
    recBorder.HitTest          := False;
+   recBorder.Height           := Self.LocalRect.Height - 40;
+   recBorder.Width            := Self.LocalRect.Width - 15;
    recBorder.Fill.Kind        := TBrushKind.None;
    recBorder.Stroke.Kind      := TBrushKind.Solid;
    recBorder.Stroke.Color     := FObjColor;
@@ -159,18 +180,24 @@ procedure TxfrmPong.SetupGame;
 begin
    txtPlayer1Text.Text   := 'Player 1:';
    txtPlayer1Text.Color  := FObjColor;
+   txtPlayer1Text.Position.X := Self.Width/2 - 100;
    FPlayer1ScoreInt      := 0;
    txtPlayer1Score.Text  := FloatToStr(FPlayer1ScoreInt);
+   txtPlayer1Score.Position.X := Self.Width/2 - 50;
    txtPlayer1Score.Color := FObjColor;
 
    txtPlayer2Text.Text   := 'Player 2:';
    txtPlayer2Text.Color  := FObjColor;
+   txtPlayer2Text.Position.X := Self.Width/2 + 50;
    FPlayer2ScoreInt      := 0;
+   txtPlayer2Score.Position.X := Self.Width/2 + 100;
    txtPlayer2Score.Text  := FloatToStr(FPlayer2ScoreInt);
    txtPlayer2Score.Color := FObjColor;
 
    txtMessageBox.Text    := 'Click Mouse To Start!';
    txtMessageBox.Color   := FObjColor;
+
+
 end;
 
 procedure TxfrmPong.SetupPlayers;
@@ -239,10 +266,10 @@ begin
 
    //handle npc movement
    if aBallCenter > aPlayer2Center then
-      recPlayer2.Position.Y := recPlayer2.Position.Y + cPlayerSpeed;
+      recPlayer2.Position.Y := recPlayer2.Position.Y + cPlayerSpeed + 1.0;
 
    if aBallCenter < aPlayer2Center then
-      recPlayer2.Position.Y := recPlayer2.Position.Y - cPlayerSpeed;
+      recPlayer2.Position.Y := recPlayer2.Position.Y - cPlayerSpeed + 1.0;
 
    if recPlayer2.Position.Y < aBottomCheck then
       recPlayer2.Position.Y := aBottomCheck;
@@ -260,26 +287,31 @@ begin
    if cirBall.Position.Y <= aBottomCheck then begin
       cirBall.Position.Y := aBottomCheck;
       FBallVY := -FBallVY;
+      PlayBounce;
    end; {IF}
 
    if cirBall.Position.Y + cirBall.Height >= aTopCheck then begin
       cirBall.Position.Y := aTopCheck - cirBall.Height;
       FBallVY := -FBallVY;
+      PlayBounce;
    end; {IF}
 
    if (cirBall.Position.X <= aLeftCheck) or
       (cirBall.Position.X + cirBall.Width >= aRightCheck) then begin
          FBallVX := -FBallVX;
+         PlayBounce;
    end; {IF}
 
    if cirBall.BoundsRect.IntersectsWith(recPlayer1.BoundsRect) then begin
       FBallVX := Abs(FBallVX);
       cirBall.Position.X := recPlayer1.Position.X + recPlayer1.Width + 1;
+      PlayBounce;
    end; {IF}
 
    if cirBall.BoundsRect.IntersectsWith(recPlayer2.BoundsRect) then begin
       FBallVX := -Abs(FBallVX);
       cirBall.Position.X := recPlayer2.Position.X - recPlayer2.Width - 1;
+      PlayBounce;
    end; {IF}
 
    //check scoring
@@ -303,6 +335,7 @@ begin
 
    if aDidScore then begin
       SetupPlayers;
+      tmrTimer.Enabled := False;
    end; {IF}
 //  UpdateDifficulty; Todo
 end;

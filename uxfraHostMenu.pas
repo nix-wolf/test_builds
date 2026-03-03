@@ -28,10 +28,11 @@ type
       cbGameType  : TComboBox;
       btnCreate   : TButton;
       lbiPong     : TListBoxItem;
-    Rectangle1: TRectangle;
+      Rectangle1  : TRectangle;
 
       procedure btnCreateClick(Sender: TObject);
       procedure btnCancelClick(Sender: TObject);
+      procedure OnAction;
   end;
 
 var
@@ -47,17 +48,15 @@ uses
      uNetManager;
 
 procedure TxFraHostMenu.btnCancelClick(Sender: TObject);
-   var
-      aForm: TForm;
 begin
-   aForm := TForm(Self.Root.GetObject);
-   TxFrmBase(aForm).Loader.PopFrame;
+   OnAction;
 end;
 
 procedure TxFraHostMenu.btnCreateClick(Sender: TObject);
    var
-      aSe : TuGameSession;
-      aP  : TuPacket;
+      aSe   : TuGameSession;
+      aP    : TuPacket;
+      aForm : TForm;
 begin
 
 
@@ -74,7 +73,22 @@ begin
    aSe.FMaxPlayers    := 2;
    aSe.FLastSeen      := Now;
    aP                 := TuPacket.Create(pfSES, aSe.ToNetworkString);
+
+   if NetMgr.Role = nrHub then begin
+      //your going to have to have a callback
+   end;
+
    NetMgr.Send(aP);
+
+   OnAction;
+end;
+
+procedure TxFraHostMenu.OnAction;
+   var
+      aForm: TForm;
+begin
+   aForm := TForm(Self.Root.GetObject);
+   TxFrmBase(aForm).Loader.PopFrame;
 end;
 
 end.

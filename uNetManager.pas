@@ -276,8 +276,7 @@ procedure TNetManager.LogToUI(aMsg: String; aType: TuMessageType);
    var
       aLogMsg  : TuLogEventData;
 begin
-   aLogMsg := TuLogEventData.Create(aMsg, aType);
-
+   aLogMsg        := TuLogEventData.Create(aMsg, aType);
    UIEventCallback<TuLogEventData>(FOnLog, aLogMsg);
 end;
 
