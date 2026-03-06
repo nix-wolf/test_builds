@@ -20,7 +20,7 @@ type
          FListener     : TuSocket;
          FJoinThread   : TuReadThread;
          FClients      : TObjectList<TuTCPRemoteClient>;
-
+         FJoiners      : TStringList;
          FActive       : Boolean;
 
          FOnMsg        : TOnDataReceived;
@@ -41,6 +41,8 @@ type
          procedure Stop;
          procedure Broadcast(aP: TuPacket);
 
+         property Clients        : TObjectList<TuTCPRemoteClient>   read FClients;
+         property Joiners        : TStringList                      read FJoiners      write FJoiners;
          property OnMessage      : TOnDataReceived                  read FOnMsg        write FOnMsg;
          property OnConnected    : TClientConnectEvent              read FOnConnect    write FOnConnect;
          property OnDisconnected : TClientConnectEvent              read FOnDisconnect write FOnDisconnect;
@@ -57,8 +59,9 @@ implementation
 
 constructor TuTCPServer.Create;
 begin
-   FClients  := TObjectList<TuTCPRemoteClient>.Create;
-   FActive   := False;
+   FClients := TObjectList<TuTCPRemoteClient>.Create;
+   FJoiners := TStringList.Create;
+   FActive  := False;
 end;
 
 procedure TuTCPServer.Start(aPort: Integer);
@@ -141,6 +144,8 @@ destructor TuTCPServer.Destroy;
 begin
    Stop;
    FClients.Free;
+   FJoiners.Free;
+   FListener.Free;
 end;
 
 end.

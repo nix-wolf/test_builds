@@ -69,6 +69,7 @@ begin
       for var i := 0 to FFrames.Count - 1 do begin
          if Assigned(aFrame) and (FFrames[i] = aFrame) then begin
             FFrames[i].Opacity := 0.5;
+            Result.Align       := TAlignLayout.Center;
             Result.BringToFront;
             Break;
          end;

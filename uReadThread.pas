@@ -42,7 +42,10 @@ type
 
 implementation
 
-uses uSocket;
+uses
+   uSocket,
+   uNetManager,
+   uTCPServer;
 
 constructor TuReadThread.Create(aSocket      : TObject;
                                 aOnData      : TOnDataReceived;
@@ -58,32 +61,57 @@ begin
 end;
 
 procedure TuReadThread.AcceptExecute;
-var
-   ClientSocket: TSocket;
-   RemoteAddr: sockaddr_in;
-   AddrLen: Integer;
+   var
+      aClientSocket : TSocket;
+      aRemoteAddr   : SockAddr_In;
+      aAddrLen      : Integer;
+      aClientIP     : String;
+      aValidIP      : String;
+      aIsValidIP    : Boolean;
 begin
-//THIS ISNT SHUTTING DOWN PROPERLY HERE  had no deconstructor remove if no more crashed onClose +0
    while not Terminated do
    begin
-      AddrLen := SizeOf(RemoteAddr);
+      aAddrLen   := SizeOf(aRemoteAddr);
+      aIsValidIP := True;
 
       If Assigned(FSocket) then begin
-         ClientSocket := accept(TuSocket(FSocket).Get, @RemoteAddr, @AddrLen);
+         aClientSocket := accept(TuSocket(FSocket).Get, @aRemoteAddr, @aAddrLen);
+      end {IF}
+      else begin
+         Terminate;
+         Exit;
+      end;
+
+      if Assigned(NetMgr.GameServer) then begin
+         aClientIP := String(Inet_Ntoa(aRemoteAddr.Sin_Addr));
+
+         for aValidIP in NetMgr.GameServer.Joiners do begin
+            if aValidIP = aClientIP then
+               aIsValidIP := True
+            else
+               aIsValidIP := False;
+         end; {FOR}
+         if NetMgr.GameServer.Joiners.Count = 0 then
+            aIsValidIP := True;
+      end; {IF}
+
+      if aIsValidIP then begin
+         if (aClientSocket <> INVALID_SOCKET) and (not Terminated) then begin
+            if Terminated then begin
+               CloseSocket(aClientSocket);
+               Exit;
+            end; {IF}
+
+            if Assigned(FOnConnect) then begin
+               TThread.Queue(nil, procedure begin
+                  FOnConnect(aClientSocket, aRemoteAddr);
+               end); {PROCEDURE}
+            end; {IF}
+         end; {IF}
       end {IF}
       else
-         Terminate;
-      //^^^ this may fix the other commect issue i think if no socket we kill the thread
-      if (ClientSocket <> INVALID_SOCKET) and (not Terminated) then
-      begin
-         //The Event Wrapper could be abstracted and used here
-         if Assigned(FOnConnect) then begin
-            TThread.Queue(nil, procedure begin
-               FOnConnect(ClientSocket, remoteAddr);
-            end);
-         end;
-      end;
-  end;
+         CloseSocket(aClientSocket);
+  end; {WHILE}
 end;
 
 procedure TuReadThread.ListenExecute;
@@ -133,8 +161,10 @@ end;
 
 procedure TuReadThread.Execute;
 begin
-   if not FIsAccepting then begin ListenExecute; end
-   else AcceptExecute;
+   if not FIsAccepting then
+      ListenExecute
+   else
+      AcceptExecute;
 end;
 
 destructor TuReadThread.Destroy;

@@ -85,10 +85,10 @@ type
          class property IP                : String                   read FIP;
          class property UDP               : TuSocket                 read FUDP;
          class property TCPClient         : TuSocket                 read FTCPClient;
-         class property GameClient        : TuSocket                 read FTCPGameClient;
          class property TCPServer         : TuTCPServer              read FTCPServer;
          class property GameServer        : TuTCPServer              read FTCPGameServer;
          class property ServerPort        : Integer                  read FServerPort;
+         class property GameClient        : TuSocket                 read FTCPGameClient     write FTCPGameClient;
          class property GameSessions      : TList<TuGameSession>     read FActiveSessions    write FActiveSessions;
          class property Role              : TuNetworkRole            read FRole              write FRole;
          class property BroadcastTimer    : TTimer                   read FBroadcastTimer    write FBroadcastTimer;
@@ -314,7 +314,8 @@ procedure TNetManager.OnTCPMessage(const aIP, aMsg: String);
       aPacket: TuPacket;
 begin
 //   LogToUI('Message Received TCP::');
-   if aIP = FIP then Exit;
+//   if aIP = FIP then Exit; // do i need this on the tcp side? pfUPD cant have it
+
    aPacket.FromString(aMsg);
    aPacket.FIP := aIP;
 
@@ -384,11 +385,19 @@ begin
    FTCPServer.OnClientConnected(aRConn);
 
    aP     := TuPacket.Create(pfCHAT, 'Welcome to the lobby!!');
-   aP.FIP := aRConn.IP;
+   aP.FIP := IP;
    aRConn.Send(aP);
 
    var aMsg := 'Connection Established: ' + aRConn.IP + '@' + IntToStr(aRConn.Port) + ': Welcome Message Sent';
    LogToUI(aMsg, mtSystem);
+
+   if FActiveSessions.Count > 0 then begin
+      var aSession: TuGameSession;
+      for aSession in FActiveSessions do begin
+         var aP2 := TuPacket.Create(pfSES, aSession.ToNetworkString);
+         aRConn.Send(aP2);
+      end; {FOR}
+   end; {IF}
 end;
 
 procedure TNetManager.OnDisconnected(aSocket: TSocket; aAddr: SockAddr_In);

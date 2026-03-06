@@ -24,8 +24,8 @@ type
         class procedure ClientSESHandler  (const aP: TuPacket);
         class procedure HubSESHandler     (const aP: TuPacket);
 
-        class procedure ClientJOINHandler (const aP: TuPacket);
         class procedure ServerJOINHandler (const aP: TuPacket);
+        class procedure HubJOINHandler    (const aP: TuPacket);
 
         class procedure ClientUPDHandler  (const aP: TuPacket);
         class procedure ServerUPDHandler  (const aP: TuPacket);
@@ -48,6 +48,7 @@ type
 implementation
 
 uses
+   uTCPRemoteClient,
    uNetManager,
    uNetworkDispatcher;
 
@@ -122,10 +123,10 @@ begin
    );
    TuNetworkDispatcher(Dispatcher).RegisterHandlers(pfJOIN,
       [npTCP],
-      [nrClient, nrServer],
+      [nrServer, nrHub],
       [
-         procedure(const aP: TuPacket) begin ClientJOINHandler(aP); end,
-         procedure(const aP: TuPacket) begin ServerJOINHandler(aP); end
+         procedure(const aP: TuPacket) begin ServerJOINHandler(aP); end,
+         procedure(const aP: TuPacket) begin HubJOINHandler(aP); end
       ]
    );
 
@@ -258,14 +259,14 @@ end;
 
 class procedure TuNetworkHandler.HubSESHandler(const aP: TuPacket);
    var
-      aGameSession: TuGameSession;
+      aSession: TuGameSession;
 begin
-   FillChar(aGameSession, SizeOf(aGameSession), 0);
-   aGameSession.FromNetworkString(aP.FData);
+   FillChar(aSession, SizeOf(aSession), 0);
+   aSession.FromNetworkString(aP.FData);
 
-    With NetMgr do begin
-      GameSessions.Add(aGameSession);
-      GameSessionToUI(aGameSession);
+   with NetMgr do begin
+      GameSessions.Add(aSession);
+      GameSessionToUI(aSession);
 
       Send(aP);
    end; {WITH}
@@ -275,14 +276,31 @@ end;
 //// pfJOIN HANDLERS::
 ///////////////////////////////////////////////////////////////////////////////
 
-class procedure TuNetworkHandler.ClientJOINHandler(const aP: TuPacket);
-begin
-
-end;
-
 class procedure TuNetworkHandler.ServerJOINHandler(const aP: TuPacket);
 begin
+   with NetMgr do begin
+      GameServer.Joiners.Add(aP.FData);
+      LogToUI('New Join Request Stored...', mtSystem);
+   end; {WITH}
+end;
 
+class procedure TuNetworkHandler.HubJOINHandler(const aP: TuPacket);
+   var
+      aSession : TuGameSession;
+      aP2      : TuPacket;
+      aClient  : TuTCPRemoteClient;
+begin
+   FillChar(aSession, SizeOf(aSession), 0);
+   aSession.FromNetworkString(aP.FData);
+
+   aP2 := TuPacket.Create(pfJOIN, aP.FIP);
+
+   with NetMgr do begin
+      for aClient in TCPServer.Clients do begin
+         if aClient.IP = aSession.FHostIP then
+            aClient.Send(aP);
+      end; {FOR}
+   end; {WITH}
 end;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -291,12 +309,14 @@ end;
 
 class procedure TuNetworkHandler.ClientUPDHandler(const aP: TuPacket);
 begin
-
+   //gets the data into the game through a callback set in the netmgr
+   with NetMgr do
+      //FunctionToGetDataToGameFrameSetOnGameLoad?
 end;
 
 class procedure TuNetworkHandler.ServerUPDHandler(const aP: TuPacket);
 begin
-
+   NetMgr.TCPServer.Broadcast(aP);
 end;
 
 ///////////////////////////////////////////////////////////////////////////////

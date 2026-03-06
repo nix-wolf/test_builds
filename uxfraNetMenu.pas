@@ -9,6 +9,8 @@ uses
    System.UITypes,
    System.Classes,
    System.Variants,
+   uSocket,
+   uxfraPong,
    uNetManager,
    uNetworkTypes,
    uxfraHostMenu,
@@ -56,6 +58,8 @@ type
       public
          constructor Create(aOwner: TComponent); override;
          destructor Destroy; override;
+
+         procedure DebounceGameJoin(aSender: TObject);
    end;
 
 var
@@ -81,8 +85,46 @@ begin
 end;
 
 procedure TxfraNetMenu.btnJoinGameClick(Sender: TObject);
+   var
+      aTimer : TTimer;
+      aP     : TuPacket;
 begin
-   //
+   aTimer := TTimer.Create(Self);
+   aTimer.Interval := 1000;
+   aTimer.OnTimer := DebounceGameJoin;
+
+   aP := TuPacket.Create(pfJOIN, FSelectedSession.GameSession.ToNetworkString);
+   aP.FIP := NetMgr.IP;
+
+   NetMgr.Send(aP);
+
+   aTimer.Enabled := True;
+   lstGames.Enabled := False;
+end;
+
+
+procedure TxfraNetMenu.DebounceGameJoin(aSender: TObject);
+   var
+      aSession     : TuGameSession;
+      aIsConnected : Boolean;
+      aForm        : TForm;
+begin
+   aSession                := FSelectedSession.GameSession;
+   TTimer(aSender).Enabled := False;
+
+   NetMgr.GameClient := TuSocket.Create(npTCP, 24001);
+   aIsConnected := NetMgr.GameClient.Connect(aSession.FHostIP, 24001);
+
+   if aIsConnected then begin
+      aForm := TForm(Self.Root.GetObject);
+      TxFrmBase(aForm).Loader.LoadFrame(TxfrmPong);
+   end {IF}
+   else begin
+      HandleNetworkLogging(TuLogEventData.Create('Failed to Connect to Game Server, Try Again...', mtError));
+      lstGames.Enabled := False;
+
+      NetMgr.GameClient.Free;
+   end; {ELSE}
 end;
 
 constructor TxfraNetMenu.Create(aOwner: TComponent);
@@ -113,7 +155,9 @@ procedure TxfraNetMenu.edtChatKeyPress(Sender      : TObject;
 begin
    if Key = VK_RETURN then begin
       if Trim(edtChat.Text) <> '' then begin
-         FNetworkManager.Send(TuPacket.Create(pfCHAT, edtChat.Text.Trim));
+         var aP := TuPacket.Create(pfCHAT, edtChat.Text.Trim);
+         aP.FIP := NetMgr.IP;
+         FNetworkManager.Send(aP);
          edtChat.Text := '';
          Key := 0;
       end; {IF}
@@ -159,7 +203,6 @@ procedure TxfraNetMenu.HandleRoleChange(const aRole: TuNetworkRole);
 begin
    if aRole <> nrNone then begin
       btnHostGame.Enabled := True;
-//      btnJoinGame.Enabled := True;
    end; {IF}
 
    case aRole of
@@ -173,8 +216,8 @@ end;
 procedure TxfraNetMenu.lstGameItemClick(const aSender : TCustomListBox;
                                         const aItem   : TListBoxItem);
    var
-      i, k   : Integer;
-      aFrame : TTuxfraSessionItem;
+      i, k       : Integer;
+      aFrame     : TTuxfraSessionItem;
       aOtherItem : TListBoxItem;
 begin
 
