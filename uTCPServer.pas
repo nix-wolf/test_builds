@@ -73,7 +73,7 @@ begin
    FListener.Start;
    FJoinThread.Start;
 
-   LogToUI('TCP Hub (Hybrid) Listening on ' + IntToStr(aPort));
+   LogToUI('TCP Server Listening on ' + IntToStr(aPort));
    FActive := True;
 end;
 

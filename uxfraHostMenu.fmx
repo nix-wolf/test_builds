@@ -1,6 +1,6 @@
 object xFraHostMenu: TxFraHostMenu
-  Size.Width = 231.000000000000000000
-  Size.Height = 137.000000000000000000
+  Size.Width = 193.000000000000000000
+  Size.Height = 105.000000000000000000
   Size.PlatformDefault = False
   object Rectangle1: TRectangle
     Size.Width = 193.000000000000000000

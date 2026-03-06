@@ -23,9 +23,7 @@ type
         class procedure ServerCHATHandler (const aP: TuPacket);
         class procedure HubCHATHandler    (const aP: TuPacket);
 
-//        class procedure SESHandler        (const aP: TuPacket); //Not sure if needed
         class procedure ClientSESHandler  (const aP: TuPacket);
-        class procedure ServerSESHandler  (const aP: TuPacket);
         class procedure HubSESHandler     (const aP: TuPacket);
 
         class procedure ClientJOINHandler (const aP: TuPacket);
@@ -119,10 +117,9 @@ begin
 
    TuNetworkDispatcher(Dispatcher).RegisterHandlers(pfSES,
       [npTCP],
-      [nrClient, nrServer, nrHub],
+      [nrClient, nrHub],
       [
          procedure(const aP: TuPacket) begin ClientSESHandler(aP); end,
-         procedure(const aP: TuPacket) begin ServerSESHandler(aP); end,
          procedure(const aP: TuPacket) begin HubSESHandler   (aP); end
       ]
    );
@@ -252,19 +249,31 @@ class procedure TuNetworkHandler.HubCHATHandler   (const aP: TuPacket);
 ///////////////////////////////////////////////////////////////////////////////
 
 class procedure TuNetworkHandler.ClientSESHandler(const aP: TuPacket);
+   var
+      aGameSession: TuGameSession;
 begin
+   FillChar(aGameSession, SizeOf(aGameSession), 0);
+   aGameSession.FromNetworkString(aP.FData);
 
-end;
-
-//server and client can probalbly be the same untill your join the game and switch over
-class procedure TuNetworkHandler.ServerSESHandler(const aP: TuPacket);
-begin
-
+   With NetMgr do begin
+      GameSessions.Add(aGameSession);
+      GameSessionToUI(aGameSession);
+   end;
 end;
 
 class procedure TuNetworkHandler.HubSESHandler(const aP: TuPacket);
+   var
+      aGameSession: TuGameSession;
 begin
-   //add to sessions
+   FillChar(aGameSession, SizeOf(aGameSession), 0);
+   aGameSession.FromNetworkString(aP.FData);
+
+    With NetMgr do begin
+      GameSessions.Add(aGameSession);
+      GameSessionToUI(aGameSession);
+
+      Send(aP);
+   end; {WITH}
 end;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -301,22 +310,23 @@ end;
 
 class procedure TuNetworkHandler.NoneCLSHandler(const aP: TuPacket);
 begin
-
+   //can it even do this? its only on udp so probably not
 end;
 
 class procedure TuNetworkHandler.ClientCLSHandler(const aP: TuPacket);
 begin
-
+   //it sends one? it doesnt receive a close?
 end;
 
 class procedure TuNetworkHandler.ServerCLSHandler(const aP: TuPacket);
 begin
-
+   //hmmm not sure ethier what server would do here
 end;
 
 class procedure TuNetworkHandler.HubCLSHandler(const aP: TuPacket);
 begin
-
+   //a on close message for the hub, removes the connection data(which maybe dead)
+   //and then check sessions to ensure no items exist for the ip
 end;
 
 
@@ -327,17 +337,17 @@ end;
 
 class procedure TuNetworkHandler.NoneKILHandler(const aP: TuPacket);
 begin
-
+   //kill tcp connection to hub
 end;
 
 class procedure TuNetworkHandler.ClientKILHandler(const aP: TuPacket);
 begin
-
+   //kill tcp connection to hub
 end;
 
 class procedure TuNetworkHandler.ServerKILHandler(const aP: TuPacket);
 begin
-
+    //kill tcp connect to hub
 end;
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -21,18 +21,21 @@ uses
 
 type
    TxFraHostMenu = class(TFrame)
-      edtGameName : TEdit;
-      lblName     : TLabel;
-      lblGType    : TLabel;
-      btnCancel   : TButton;
-      cbGameType  : TComboBox;
-      btnCreate   : TButton;
-      lbiPong     : TListBoxItem;
-      Rectangle1  : TRectangle;
+         edtGameName : TEdit;
+         lblName     : TLabel;
+         lblGType    : TLabel;
+         btnCancel   : TButton;
+         cbGameType  : TComboBox;
+         btnCreate   : TButton;
+         lbiPong     : TListBoxItem;
+         Rectangle1  : TRectangle;
 
-      procedure btnCreateClick(Sender: TObject);
-      procedure btnCancelClick(Sender: TObject);
-      procedure OnAction;
+         procedure btnCreateClick(Sender: TObject);
+         procedure btnCancelClick(Sender: TObject);
+         procedure OnAction;
+
+      public
+         procedure Create(aOwner: TComponent);
   end;
 
 var
@@ -58,13 +61,11 @@ procedure TxFraHostMenu.btnCreateClick(Sender: TObject);
       aP    : TuPacket;
       aForm : TForm;
 begin
-
-
    FillChar(aP, SizeOf(aP), 0);
    FillChar(aSe, SizeOf(aSe), 0);
 
    if edtGameName.Text = '' then begin
-      aSe.FHostName   := 'Why no name?';
+      aSe.FHostName   := 'Why no naming?';
    end {IF}
    else aSe.FHostName := edtGameName.Text;
    aSe.FGameType      := cbGameType.Text;
@@ -74,13 +75,24 @@ begin
    aSe.FLastSeen      := Now;
    aP                 := TuPacket.Create(pfSES, aSe.ToNetworkString);
 
-   if NetMgr.Role = nrHub then begin
-      //your going to have to have a callback
-   end;
+   With NetMgr do begin
+      if Role = nrHub then begin
+         GameSessions.Add(aSe);
+         GameSessionToUI(aSe);
+      end; {IF}
+      Send(aP);
+      StartServer(GameServer, 24000);
 
-   NetMgr.Send(aP);
+      //TCPClient to join the server? cause if hub tcpclient is aviable
+   end; {WITH}
+
 
    OnAction;
+end;
+
+procedure TxFraHostMenu.Create(aOwner: TComponent);
+begin
+   inherited Create(aOwner);
 end;
 
 procedure TxFraHostMenu.OnAction;

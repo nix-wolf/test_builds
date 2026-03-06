@@ -11,7 +11,7 @@ object xfraNetMenu: TxfraNetMenu
     object lstGames: TListBox
       Position.X = 48.000000000000000000
       Position.Y = 49.000000000000000000
-      Size.Width = 513.000000000000000000
+      Size.Width = 521.000000000000000000
       Size.Height = 137.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 1
@@ -19,11 +19,11 @@ object xfraNetMenu: TxfraNetMenu
       DefaultItemStyles.ItemStyle = ''
       DefaultItemStyles.GroupHeaderStyle = ''
       DefaultItemStyles.GroupFooterStyle = ''
-      Viewport.Width = 509.000000000000000000
+      Viewport.Width = 517.000000000000000000
       Viewport.Height = 133.000000000000000000
     end
     object btnJoinGame: TButton
-      Position.X = 360.000000000000000000
+      Position.X = 376.000000000000000000
       Position.Y = 194.000000000000000000
       Size.Width = 113.000000000000000000
       Size.Height = 22.000000000000000000
@@ -49,7 +49,7 @@ object xfraNetMenu: TxfraNetMenu
       TabOrder = 4
       Position.X = 48.000000000000000000
       Position.Y = 433.000000000000000000
-      Size.Width = 513.000000000000000000
+      Size.Width = 521.000000000000000000
       Size.Height = 22.000000000000000000
       Size.PlatformDefault = False
     end
@@ -62,7 +62,7 @@ object xfraNetMenu: TxfraNetMenu
     object lstMessages: TListBox
       Position.X = 48.000000000000000000
       Position.Y = 224.000000000000000000
-      Size.Width = 513.000000000000000000
+      Size.Width = 521.000000000000000000
       Size.Height = 214.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 0
@@ -70,7 +70,7 @@ object xfraNetMenu: TxfraNetMenu
       DefaultItemStyles.ItemStyle = ''
       DefaultItemStyles.GroupHeaderStyle = ''
       DefaultItemStyles.GroupFooterStyle = ''
-      Viewport.Width = 509.000000000000000000
+      Viewport.Width = 517.000000000000000000
       Viewport.Height = 210.000000000000000000
     end
   end

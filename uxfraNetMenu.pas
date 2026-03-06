@@ -12,6 +12,7 @@ uses
    uNetManager,
    uNetworkTypes,
    uxfraHostMenu,
+   uxfraSessionItem,
    FMX.Types,
    FMX.Graphics,
    FMX.Controls,
@@ -45,12 +46,13 @@ type
                                 Shift       : TShiftState);
 
       private
-         FNetworkManager: TNetManager;
-         aSelectedSession: TuGameSession;
+         FNetworkManager  : TNetManager;
+         FSelectedSession : TTuxfraSessionItem;
 
          procedure HandleNetworkLogging(const aLogData: TuLogEventData);
          procedure HandleRoleChange(const aRole: TuNetworkRole);
-         procedure UpdateRoleUI(const aRole: TuNetworkRole);
+         procedure HandleGameSession(const aGameSession: TuGameSession);
+         procedure lstGameItemClick(const aSender: TCustomListBox; const aItem: TListBoxItem);
       public
          constructor Create(aOwner: TComponent); override;
          destructor Destroy; override;
@@ -71,6 +73,8 @@ procedure TxfraNetMenu.btnHostGameClick(Sender: TObject);
    var
       aForm: TForm;
 begin
+   if NetMgr.Role = nrNone then Exit;
+
    aForm := TForm(Self.Root.GetObject);
 
    TxFrmBase(aForm).Loader.LoadFrame(TxFraHostMenu, True, Self);
@@ -78,7 +82,7 @@ end;
 
 procedure TxfraNetMenu.btnJoinGameClick(Sender: TObject);
 begin
-  //
+   //
 end;
 
 constructor TxfraNetMenu.Create(aOwner: TComponent);
@@ -86,22 +90,21 @@ constructor TxfraNetMenu.Create(aOwner: TComponent);
       aLogMsg: TuLogEventData;
 begin
    inherited Create(aOwner);
-   FNetworkManager              := TNetManager.Get;
-   FNetworkManager.OnLog        := HandleNetworkLogging;
-   FNetworkManager.OnRoleChange := HandleRoleChange;
-   edtChat.OnKeyDown            := edtChatKeyPress;
+   FNetworkManager               := TNetManager.Get;
+   FNetworkManager.OnLog         := HandleNetworkLogging;
+   FNetworkManager.OnRoleChange  := HandleRoleChange;
+   FNetworkManager.OnGameSession := HandleGameSession;
+
+   edtChat.OnKeyDown             := edtChatKeyPress;
+   lstGames.OnItemClick          := lstGameItemClick;
+
+   btnHostGame.Enabled := False;
+   btnJoinGame.Enabled := False;
 
    FNetworkManager.Start;
    aLogMsg := TuLogEventData.Create('Network Mananger Initalized...', mtSystem);
    HandleNetworkLogging(aLogMsg);
 end;
-
-destructor TxfraNetMenu.Destroy;
-begin
-
-   inherited Destroy;
-end;
-
 
 procedure TxfraNetMenu.edtChatKeyPress(Sender      : TObject;
                                        var Key     : Word;
@@ -117,30 +120,93 @@ begin
    end; {IF}
 end;
 
+procedure TxfraNetMenu.HandleGameSession(const aGameSession: TuGameSession);
+   var
+      aItem: TListBoxItem;
+      aFrame: TTuxfraSessionItem;
+begin
+      aItem             := TListBoxItem.Create(lstGames);
+      aItem.Parent      := lstGames;
+      aItem.StyleLookup := '';
+      aItem.Text        := '';
+      aItem.Height      := 20;
+
+      aFrame         := TTuxfraSessionItem.Create(aItem);
+      aFrame.Parent  := aItem;
+      aFrame.Align   := TAlignLayout.Contents;
+      aFrame.HitTest := False;
+      aFrame.Update(aGameSession);
+
+      aFrame.RecalcSize;
+      btnHostGame.Enabled := False;
+end;
+
 procedure TxfraNetMenu.HandleNetworkLogging(const aLogData: TuLogEventData);
 begin
    var aString     := FormatDateTime('hh:nn:ss', aLogData.FTimestamp);
    var aItem       := TListBoxItem.Create(lstMessages);
+
    aItem.StyledSettings := aItem.StyledSettings - [TStyledSetting.FontColor];
-   aItem.Text  := Format('[%s]::> %s', [aString, aLogData.FMsg]);
-   aItem.FontColor := aLogData.FColor;
+   aItem.Text           := Format('[%s]::> %s', [aString, aLogData.FMsg]);
+   aItem.FontColor      := aLogData.FColor;
 
    lstMessages.AddObject(aItem);
 end;
 
 procedure TxfraNetMenu.HandleRoleChange(const aRole: TuNetworkRole);
 begin
-   UpdateRoleUI(aRole);
-end;
+   if aRole <> nrNone then begin
+      btnHostGame.Enabled := True;
+//      btnJoinGame.Enabled := True;
+   end; {IF}
 
-procedure TxfraNetMenu.UpdateRoleUI(const aRole: TuNetworkRole);
-begin
    case aRole of
       nrNone   : lblStatus.Text := 'Mode: None';
       nrClient : lblStatus.Text := 'Mode: Client';
       nrServer : lblStatus.Text := 'Mode: Server';
       nrHub    : lblStatus.Text := 'Mode: Hub';
    end; {CASE}
+end;
+
+procedure TxfraNetMenu.lstGameItemClick(const aSender : TCustomListBox;
+                                        const aItem   : TListBoxItem);
+   var
+      i, k   : Integer;
+      aFrame : TTuxfraSessionItem;
+      aOtherItem : TListBoxItem;
+begin
+
+
+   for i := 0 to lstGames.Count - 1 do begin
+      aOtherItem := lstGames.ItemByIndex(i);
+
+
+      for k := 0 to aOtherItem.ControlsCount -1  do begin
+         if aOtherItem.Controls[k] is TTuxfraSessionItem then begin
+            aFrame := TTuxfraSessionItem(aOtherItem.Controls[k]);
+
+            aFrame.recBackground.Stroke.Kind  := TBrushKind.Solid;
+
+            if aOtherItem.IsSelected then begin
+               aFrame.recBackground.Stroke.Color     := TAlphaColorRec.Blue;
+               aFrame.recBackground.Stroke.Thickness := 3;
+
+               FSelectedSession    := aFrame;
+               btnJoinGame.Enabled := True;
+            end {IF}
+            else begin
+               aFrame.recBackground.Stroke.Color     := TAlphaColorRec.Black;
+               aFrame.recBackground.Stroke.Thickness := 1;
+            end; {ELSE}
+         end; {IF}
+      end; {FOR}
+   end; {FOR}
+end;
+
+destructor TxfraNetMenu.Destroy;
+begin
+
+   inherited Destroy;
 end;
 
 end.

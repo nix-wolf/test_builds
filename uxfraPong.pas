@@ -53,6 +53,8 @@ type
       FKeyDownPressed  : Boolean;
       FBallBounce      : TMediaPlayer;
 
+
+
       procedure PlayBounce;
    const
       cPlayerWidth  = 10.0;

@@ -41,8 +41,6 @@ var
 
 implementation
 
-{$R *.fmx}
-
 constructor TxfrmLoader.Create(aContainer: TControl);
 begin
    inherited Create;
@@ -52,25 +50,27 @@ end;
 
 function TxfrmLoader.LoadFrame(aFC: TFrameClass; aActive: Boolean = True; aFrame: TFrame = nil): TFrame;
 begin
+   if (FContainer.Root <> nil) then
+      FContainer.Root.Focused := nil;
+
    Result             := aFC.Create(FContainer);
    Result.Parent      := FContainer;
-   Result.Align       := TAlignLayout.Center;
+
+   Result.Width       := FContainer.Width;
+   Result.Height      := FContainer.Height;
+
+   Result.Align       := TAlignLayout.Contents;
    Result.Visible     := aActive;
+//   Result.ResetFocus;
    Result.CanFocus    := True;
-   Result.AutoCapture := True;
-
-   Result.Width := FContainer.Width;
-   Result.Height := FContainer.Height;
-
-   Result.BringToFront;
-   Result.SetFocus;
+//   Result.AutoCapture := True;
 
    if Assigned(FFrames) then begin
       for var i := 0 to FFrames.Count - 1 do begin
          if Assigned(aFrame) and (FFrames[i] = aFrame) then begin
             FFrames[i].Opacity := 0.5;
-            Result.Align       := TAlignLayout.Center;
-            break;
+            Result.BringToFront;
+            Break;
          end;
 
          FFrames[i].Visible := False;
@@ -78,6 +78,8 @@ begin
 
       FFrames.Add(Result);
    end;
+
+   Result.SetFocus;
 end;
 
 procedure TxfrmLoader.PopFrame(aFrame: TFrame);
@@ -89,16 +91,25 @@ begin
    aTarget := aFrame;
    if aTarget = nil then aTarget := FFrames.Last;
 
-   aTarget.AnimateFloat('Opacity', 0, 0.3);
+   if (aTarget.Root <> nil) and (aTarget.Root.Focused <> nil) then
+      aTarget.Root.Focused := nil;
 
+//   aTarget.AnimateFloat('Opacity', 0, 0.3);
+   aTarget.Visible := False;
+   aTarget.Enabled := False;
+   aTarget.ResetFocus;
    FFrames.Remove(aTarget);
 
-   if FFrames.Count > 0 then
-   begin
-      FFrames.Last.Visible := True;
-      FFrames.Last.Opacity := 1.0;
+   if FFrames.Count > 0 then begin
+      FFrames.Last.Visible     := True;
+//      FFrames.Last.ResetFocus;
+      FFrames.Last.CanFocus    := True;
+      FFrames.Last.Opacity     := 1.0;
       FFrames.Last.BringToFront;
-   end;
+      FFrames.Last.SetFocus;
+      FFrames.Last.HitTest := False;
+   end; {IF}
+
 end;
 
 //Will need to disable the back button in game but should exist every where

@@ -28,7 +28,9 @@ type
 
          FUDP                : TuSocket;
          FTCPClient          : TuSocket;
+         FTCPGameClient      : TuSocket;
          FTCPServer          : TuTCPServer;
+         FTCPGameServer      : TuTCPServer;
          FDispatcher         : TuNetworkDispatcher;
          FRole               : TuNetworkRole;
          //Should be in server
@@ -47,7 +49,7 @@ type
 
          FOnLog              : TUIEvent<TuLogEventData>;
          FOnRoleChange       : TUIEvent<TuNetworkRole>;
-
+         FOnGameSession      : TUIEvent<TuGameSession>;
          //timer functions
          procedure OnBroadcastTimer    (aSender: TObject);
          procedure OnCleanUpTimer      (aSender: TObject);
@@ -64,7 +66,7 @@ type
          procedure OnDisconnected      (aSocket: TSocket; aAddr: SockAddr_In);
          //Wrapper for UI events to return data to the ui
          procedure UIEventCallback<T>  (aEvent: TUIEvent<T>; aT: T); overload;
-         procedure UIEventCallback<T, T2>  (aEvent: TUIEvent2<T, T2>; aT: T; aT2: T2); overload;
+//         procedure UIEventCallback<T, T2>  (aEvent: TUIEvent2<T, T2>; aT: T; aT2: T2); overload;
 
          function GetLocalIP: string;
       public
@@ -72,23 +74,27 @@ type
          destructor Destroy; override;
 
          procedure Start;
-         procedure StartHub(const aPort: Integer);
+         procedure StartServer(aServer: TuTCPServer; const aPort: Integer);
          procedure Connect(const aIP: String; const aPort: Integer);
          procedure Send(aP: TuPacket);
          //call backs for returning data to parent frame
          procedure LogToUI(aMsg: String; aType: TuMessageType);
          procedure UpdateRoleToUI;
-
+         procedure GameSessionToUI(aGameSession: TuGameSession);
 
          class property IP                : String                   read FIP;
          class property UDP               : TuSocket                 read FUDP;
          class property TCPClient         : TuSocket                 read FTCPClient;
+         class property GameClient        : TuSocket                 read FTCPGameClient;
          class property TCPServer         : TuTCPServer              read FTCPServer;
+         class property GameServer        : TuTCPServer              read FTCPGameServer;
          class property ServerPort        : Integer                  read FServerPort;
+         class property GameSessions      : TList<TuGameSession>     read FActiveSessions    write FActiveSessions;
          class property Role              : TuNetworkRole            read FRole              write FRole;
          class property BroadcastTimer    : TTimer                   read FBroadcastTimer    write FBroadcastTimer;
          class property OnLog             : TUIEvent<TuLogEventData> read FOnLog             write FOnLog;
          class property OnRoleChange      : TUIEvent<TuNetworkRole>  read FOnRoleChange      write FOnRoleChange;
+         class property OnGameSession     : TUIEvent<TuGameSession>  read FOnGameSession     write FOnGameSession;
          class property DiscoveryAttempts : Integer                  read FDiscoveryAttempts write FDiscoveryAttempts;
 
          class function Get               : TNetManager;
@@ -182,7 +188,7 @@ begin
          FRole := nrHub;
 
       UpdateRoleToUI;
-      StartHub(FServerPort);
+      StartServer(FTCPServer, FServerPort);
       FBroadcastTimer.Interval := 10000;
       end {IF}
       else begin
@@ -233,13 +239,18 @@ begin
             Exit;
          end;
       end;
-      nrServer,
+      nrServer: begin
+         if Assigned(FTCPClient) and FTCPClient.IsConnected then begin
+            FTCPClient.Send(aP.Parse, '', 0);
+            Exit;
+         end;
+      end;
       nrHub: begin
          if Assigned(FTCPServer) then begin
             case aCmd of
                pfCHAT: LogToUI(aP.FData, mtLocal);
                pfVEWLF: LogToUI('Responding to a Hub Search Query', mtSystem);
-               pfSES: {here now.};
+               pfSES: LogToUI('Updating Client Session List', mtSystem);
                pfJOIN: {Handle info for join to respective parties};
                pfKIL: {causes connection to drop};
                pfSHFT: {sending a shift will dump data for other hub};
@@ -263,14 +274,14 @@ begin
    end; {IF}
 end;
 
-procedure TNetManager.UIEventCallback<T, T2>(aEvent: TUiEvent2<T, T2>; aT: T; aT2: T2);
-begin
-   if Assigned(aEvent) then begin
-      TThread.Queue(nil, procedure begin
-         aEvent(aT, aT2);
-      end);{PROCEDURE}
-   end; {IF}
-end;
+//procedure TNetManager.UIEventCallback<T, T2>(aEvent: TUiEvent2<T, T2>; aT: T; aT2: T2);
+//begin
+//   if Assigned(aEvent) then begin
+//      TThread.Queue(nil, procedure begin
+//         aEvent(aT, aT2);
+//      end);{PROCEDURE}
+//   end; {IF}
+//end;
 
 procedure TNetManager.LogToUI(aMsg: String; aType: TuMessageType);
    var
@@ -283,11 +294,16 @@ end;
 procedure TNetManager.UpdateRoleToUI;
    begin UIEventCallback<TuNetworkRole>(FOnRoleChange, FRole); end;
 
+procedure TNetManager.GameSessionToUI(aGameSession: TuGameSession);
+begin
+   UIEventCallback<TuGameSession>(FOnGameSession, aGameSession);
+end;
+
 ///////////////////////////////////////////////////////////////////////////////
 //// Primary Message Handlers
 ///////////////////////////////////////////////////////////////////////////////
 
-///COMPRESS TO A SINGLE CALL THEY ARE BOTH JUST DIFFERENTIATED BY PROTOCOL
+///COMPRESS TO A SINGLE CALL THEY ARE BOTH JUST DIFFERENTIATED BY PROTOCOL, which could be passed from on step down
 procedure TNetManager.OnTCPMessage(const aIP, aMsg: String);
    var
       aPacket: TuPacket;
@@ -376,22 +392,21 @@ begin
 //   notify server disconnect, kill connections, scrub data for graceful exit
 end;
 
-procedure TNetManager.StartHub(const aPort: Integer);
+procedure TNetManager.StartServer(aServer: TuTCPServer; const aPort: Integer);
    var
       aLogMsg  : TuLogEventData;
 begin
 
-   LogToUI('Starting Lobby Server...', mtSystem);
-   FTCPServer                := TuTCPServer.Create;
-   FTCPServer.OnMessage      := OnTCPMessage;
-   FTCPServer.OnLog          := LogToUI;
-   FTCPServer.OnConnected    := OnConnected;
-   FTCPServer.OnDisconnected := OnDisconnected;
+//   LogToUI('Starting Lobby Server...', mtSystem);
+   aServer                := TuTCPServer.Create;
+   aServer.OnMessage      := OnTCPMessage;
+   aServer.OnLog          := LogToUI;
+   aServer.OnConnected    := OnConnected;
+   aServer.OnDisconnected := OnDisconnected;
    //should be on 6001, will be 24000+ for actual game servers.
-   FTCPServer.Start(aPort + 1);
+   aServer.Start(aPort + 1);
 
 end;
-
 
 ///////////////////////////////////////////////////////////////////////////////
 //// Deconstruction

@@ -37,7 +37,6 @@ type
       function  ToNetworkString: String;
       function  ToListItem(aListBox: TListBox): TListBoxItem;
       procedure FromNetworkString(aData: String);
-
    end;
 
    TuPacket = record
@@ -57,7 +56,14 @@ type
       class function Create(aFlag: TuPacketFlag; aProtocol: TuNetProtocol): TuDispatchKey; static;
    end;
 
-   TuPacketRoutine = reference to procedure(const P: TuPacket);
+
+   TuPacketRoutine      = reference to procedure(const P: TuPacket);
+   TClientConnectEvent  = procedure(aSocket: TSocket; aAddr: SockAddr_In) of Object;
+   TOnDataReceived      = procedure(const aIP, aData: String) of Object;
+   TUIEvent<T>          = procedure(aT: T) of Object;
+   TUIEvent2<T, T2>     = procedure(aT: T; aT2: T2) of Object;
+   TLogEvent            = procedure(aMsg: String; aType: TuMessageType);
+   TSessionCreatedEvent = procedure(const ASessionName: string) of object;
 
    TuMultiRoleHandler = record
       Roles: array[TuNetworkRole] of TuPacketRoutine;
@@ -65,14 +71,6 @@ type
       procedure AddToRole(aRole: TuNetworkRole; aRoutine: TuPacketRoutine);
       procedure Execute(const P: TuPacket; aCurrentRole: TuNetworkRole);
    end;
-
-   TuPacketHandler     = reference to procedure(const P: TuPacket);
-   TClientConnectEvent = procedure(aSocket: TSocket; aAddr: SockAddr_In) of Object;
-   TOnDataReceived     = procedure(const aIP, aData: String) of Object;
-   TUIEvent<T>         = procedure(aT: T) of Object;
-   TUIEvent2<T, T2>    = procedure(aT: T; aT2: T2) of Object;
-   TLogEvent           = procedure(aMsg: String; aType: TuMessageType);
-
 
 implementation
 

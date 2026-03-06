@@ -61,7 +61,7 @@ begin
    Self.Constraints.MinHeight := 768;
    Self.Constraints.MaxHeight := 768;
 
-   lytContainer.Align := TAlignLayout.Contents;
+   lytContainer.Align := TAlignLayout.Client;
    FLoader := TxFrmLoader.Create(lytContainer);
 
    FLoader.LoadFrame(TxfraMainMenu, True);
