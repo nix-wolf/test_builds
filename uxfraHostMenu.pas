@@ -82,10 +82,7 @@ begin
       end; {IF}
       Send(aP);
       StartServer(GameServer, 24000);
-
-      //TCPClient to join the server? cause if hub tcpclient is aviable
    end; {WITH}
-
 
    OnAction;
 end;

@@ -13,14 +13,12 @@ type
         class procedure NoneVEWLFHandler  (const aP: TuPacket);
         class procedure HubVEWLFHandler   (const aP: TuPacket);
 
-        class procedure HTBHandler    (const aP: TuPacket);
+        class procedure HTBHandler        (const aP: TuPacket);
         class procedure ClientHTBHandler  (const aP: TuPacket);
         class procedure ServerHTBHandler  (const aP: TuPacket);
         class procedure HubHTBHandler     (const aP: TuPacket);
 
-        class procedure CHATHandler       (const aP: TuPacket);
         class procedure ClientCHATHandler (const aP: TuPacket);
-        class procedure ServerCHATHandler (const aP: TuPacket);
         class procedure HubCHATHandler    (const aP: TuPacket);
 
         class procedure ClientSESHandler  (const aP: TuPacket);
@@ -107,10 +105,9 @@ begin
 
    TuNetworkDispatcher(Dispatcher).RegisterHandlers(pfCHAT,
       [npTCP],
-      [nrClient, nrServer, nrHub],
+      [nrClient, nrHub],
       [
          procedure(const aP: TuPacket) begin ClientCHATHandler(aP); end,
-         procedure(const aP: TuPacket) begin ServerCHATHandler(aP); end,
          procedure(const aP: TuPacket) begin HubCHATHandler   (aP); end
       ]
    );
@@ -180,14 +177,6 @@ end;
 //// Handler Implementations::
 ///////////////////////////////////////////////////////////////////////////////
 
-
-class procedure TuNetworkHandler.CHATHandler(const aP: TuPacket);
-begin
-   with NetMgr do begin
-      LogtoUI(aP.FData, mtIn);
-   end; {WITH}
-end;
-
 class procedure TuNetworkHandler.HTBHandler(const aP: TuPacket);
 begin
 
@@ -234,15 +223,21 @@ end;
 ///////////////////////////////////////////////////////////////////////////////
 
 class procedure TuNetworkHandler.ClientCHATHandler(const aP: TuPacket);
-   begin ChatHandler(aP); end;
-class procedure TuNetworkHandler.ServerCHATHandler(const aP: TuPacket);
+begin
+   with NetMgr do begin
+      if IP = aP.FIP then
+         LogtoUI(aP.FData, mtLocal)
+      else
+         LogtoUI(aP.FData, mtIn);
+   end; {WITH}
+end;
+
+class procedure TuNetworkHandler.HubCHATHandler(const aP: TuPacket);
 begin
    with NetMgr do begin
       Send(aP);
    end;
 end;
-class procedure TuNetworkHandler.HubCHATHandler   (const aP: TuPacket);
-   begin ServerChatHandler(aP); end;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// pfSES HANDLERS::

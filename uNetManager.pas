@@ -59,7 +59,7 @@ type
          procedure OnUDPMessage        (const aIP, aMsg: String);
 
          //client functions
-         procedure OnConnect           (aSender: TObject);
+         procedure OnConnect           (const aIP: String; const aPort: Integer);
 //         procedure OnDisconnect     (aSender: TObject);
          //server functions
          procedure OnConnected         (aSocket: TSocket; aAddr: SockAddr_In);
@@ -346,15 +346,14 @@ begin
    FTCPClient.OnDataReceived := OnTCPMessage;
    aConnection               := FTCPClient.Connect(aIP, aPort);
 
-   if aConnection then OnConnect(Self);
+   if aConnection then OnConnect(aIP, aPort);
 end;
 
-//does this even need a argument? IT NEED A PROTOCOL for where we call it
-procedure TNetManager.OnConnect(aSender: TObject);
-   var
-      aIP, aPort: String;
+procedure TNetManager.OnConnect(const aIP: String; const aPort: Integer);
 begin
-   LogToUI('Connected to: ' + aIP + '@' + aPort, mtSystem);
+   FRole := nrClient;
+   UpdateRoleToUI;
+   LogToUI('Connected to: ' + aIP + '@' + IntToStr(aPort), mtSystem);
 end;
 
 ///////////////////////////////////////////////////////////////////////////////
