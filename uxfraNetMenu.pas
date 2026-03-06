@@ -138,7 +138,9 @@ begin
       aFrame.Update(aGameSession);
 
       aFrame.RecalcSize;
-      btnHostGame.Enabled := False;
+
+      if NetMgr.IP = aGameSession.FHostIP then
+         btnHostGame.Enabled := False;
 end;
 
 procedure TxfraNetMenu.HandleNetworkLogging(const aLogData: TuLogEventData);

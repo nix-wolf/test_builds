@@ -248,7 +248,12 @@ begin
       nrHub: begin
          if Assigned(FTCPServer) then begin
             case aCmd of
-               pfCHAT: LogToUI(aP.FData, mtLocal);
+               pfCHAT: begin
+                  if IP = aP.FIP then
+                     LogtoUI(aP.FData, mtLocal)
+                  else
+                     LogtoUI(aP.FData, mtIn);
+               end;
                pfVEWLF: LogToUI('Responding to a Hub Search Query', mtSystem);
                pfSES: LogToUI('Updating Client Session List', mtSystem);
                pfJOIN: {Handle info for join to respective parties};
