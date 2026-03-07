@@ -141,10 +141,4 @@ begin
    inherited Destroy;
 end;
 
-
-function TxfrmLoader.LoadFrame(aFrame: TFrame): TFrame;
-begin
-
-end;
-
 end.
