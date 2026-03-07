@@ -8,6 +8,8 @@ object xfrmBase: TxfrmBase
   FormFactor.Height = 480
   FormFactor.Devices = [Desktop]
   OnCreate = FormCreate
+  OnDestroy = FormDelete
+  OnKeyDown = FormKeyDown
   DesignerMasterStyle = 0
   object lytContainer: TLayout
     Size.Width = 640.000000000000000000

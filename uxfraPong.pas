@@ -11,6 +11,8 @@ uses
    System.Variants,
    System.Math,
    System.DateUtils,
+   uxfraGame,
+   uNetworkTypes,
    FMX.Media,
    FMX.Types,
    FMX.Controls,
@@ -20,7 +22,7 @@ uses
    FMX.Objects;
 
 type
-   TxfrmPong = class(TFrame)
+   TxfrmPong = class(TuxfraGame)
       recPlayer2      : TRectangle;
       recPlayer1      : TRectangle;
       recBorder       : TRectangle;
@@ -43,6 +45,7 @@ type
       procedure SetupGame;
       procedure SetupTimer;
    private
+      FObjColor2       : TAlphaColor;
       FObjColor        : TAlphaColor;
       FBallVY          : Single;
       FBallVX          : Single;
@@ -53,9 +56,8 @@ type
       FKeyDownPressed  : Boolean;
       FBallBounce      : TMediaPlayer;
 
-
-
       procedure PlayBounce;
+
    const
       cPlayerWidth  = 10.0;
       cEdgeOffset   = 50.0;
@@ -67,7 +69,7 @@ type
       procedure Resize; override;
    public
       constructor Create(aOwner: TComponent); override;
-
+      procedure HandleGamePacket(const aP: TuPacket); override;
    end;
 
 var
@@ -85,12 +87,14 @@ begin
 
    Randomize;
    FObjColor                := TAlphaColorRec.Chartreuse;
+   FObjColor2               := TAlphacolorRec.Blue;
 
    recBackground.Fill.Kind  := TBrushKind.Solid;
    recBackground.Fill.Color := TAlphaColorRec.Black;
    recBackground.HitTest    := false;
 
    FBallBounce := TMediaPlayer.Create(Self);
+
    var aSoundPath := System.IOUtils.TPath.Combine(System.IOUtils.TPath.GetDirectoryName(ParamStr(0)), 'bounce.mp3');
    if TFile.Exists(aSoundPath) then
       FBallBounce.FileName := aSoundPath;
@@ -136,6 +140,14 @@ begin
    FGameTime          := Now();
 end;
 
+procedure TxfrmPong.HandleGamePacket(const aP: TuPacket);
+begin
+   //unpackes the packdata and handles it accordingly
+   //will need ball updates
+   //will need player updates
+
+end;
+
 procedure TxfrmPong.PlayBounce;
 begin
    if (FBallBounce <> nil) and (FBallBounce.Media <> nil) then
@@ -168,19 +180,55 @@ begin
 end;
 
 procedure TxfrmPong.SetupBorder;
+   var
+      GP: TGradientPoint;
 begin
+   //Setup Color to be hald one half another if multiplayer
    recBorder.HitTest          := False;
    recBorder.Height           := Self.LocalRect.Height - 40;
    recBorder.Width            := Self.LocalRect.Width - 15;
    recBorder.Fill.Kind        := TBrushKind.None;
-   recBorder.Stroke.Kind      := TBrushKind.Solid;
-   recBorder.Stroke.Color     := FObjColor;
+
+   if IsMultiplayer then begin
+      recBorder.Stroke.Kind      := TBrushKind.Gradient;
+
+      recBorder.Stroke.Gradient.Points.Clear;
+      GP        := recBorder.Stroke.Gradient.Points.Add as TGradientPoint;
+      GP.Color  := FObjColor;
+      GP.Offset := 0.0;
+
+      GP        := recBorder.Stroke.Gradient.Points.Add as TGradientPoint;
+      GP.Color  := FObjColor;
+      GP.Offset := 0.5;
+
+      GP        := recBorder.Stroke.Gradient.Points.Add as TGradientPoint;
+      GP.Color  := FObjColor2;
+      GP.Offset := 0.5;
+
+      GP        := recBorder.Stroke.Gradient.Points.Add as TGradientPoint;
+      GP.Color  := FObjColor2;
+      GP.Offset := 1.0;
+
+      recBorder.Stroke.Gradient.StartPosition.X := 0;
+      recBorder.Stroke.Gradient.StartPosition.Y := 0;
+      recBorder.Stroke.Gradient.StopPosition.X  := 1;
+      recBorder.Stroke.Gradient.StopPosition.Y  := 0;
+   end
+   else begin
+      recBorder.Stroke.Kind      := TBrushKind.Solid;
+      recBorder.Stroke.Color     := FObjColor;
+   end;
+
    recBorder.Stroke.Thickness := 5.0;
 end;
 
 procedure TxfrmPong.SetupGame;
 begin
-   txtPlayer1Text.Text   := 'Player 1:';
+   if IsMultiplayer then
+      txtPlayer1Text.Text   := 'You: '
+   else
+      txtPlayer1Text.Text   := 'Player 1:';
+
    txtPlayer1Text.Color  := FObjColor;
    txtPlayer1Text.Position.X := Self.Width/2 - 100;
    FPlayer1ScoreInt      := 0;
@@ -188,8 +236,16 @@ begin
    txtPlayer1Score.Position.X := Self.Width/2 - 50;
    txtPlayer1Score.Color := FObjColor;
 
-   txtPlayer2Text.Text   := 'Player 2:';
-   txtPlayer2Text.Color  := FObjColor;
+
+   if IsMultiplayer then begin
+      txtPlayer2Text.Text   := 'Them: ';
+      txtPlayer2Text.Color  := FObjColor2;
+   end
+   else begin
+      txtPlayer1Text.Text   := 'Player 2:';
+      txtPlayer2Text.Color  := FObjColor;
+   end;
+
    txtPlayer2Text.Position.X := Self.Width/2 + 50;
    FPlayer2ScoreInt      := 0;
    txtPlayer2Score.Position.X := Self.Width/2 + 100;
@@ -198,8 +254,6 @@ begin
 
    txtMessageBox.Text    := 'Click Mouse To Start!';
    txtMessageBox.Color   := FObjColor;
-
-
 end;
 
 procedure TxfrmPong.SetupPlayers;
@@ -218,7 +272,12 @@ begin
 
    //Default Player 2 Settings
    recPlayer2.Fill.Kind  := TBrushKind.Solid;
-   recPlayer2.Fill.Color := FObjColor;
+
+   if IsMultiplayer then
+      recPlayer2.Fill.Color := FObjColor2
+   else
+      recPlayer2.Fill.Color := FObjColor;
+
    recPlayer2.Align      := TAlignLayout.None;
    recPlayer2.Width      := cPlayerWidth;
    recPlayer2.Height     := cPlayerHeight;

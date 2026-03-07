@@ -9,7 +9,9 @@ uses
    System.UITypes,
    System.Classes,
    System.Variants,
+   System.StrUtils,
    uSocket,
+   uxfraGame,
    uxfraPong,
    uNetManager,
    uNetworkTypes,
@@ -32,21 +34,20 @@ uses
 
 type
    TxfraNetMenu = class(TFrame)
-      lstGames    : TListBox;
-      lstMessages : TListBox;
-      lLayout     : TLayout;
-      btnJoinGame : TButton;
-      btnHostGame : TButton;
-      edtChat     : TEdit;
-      lblStatus   : TLabel;
+         lstGames    : TListBox;
+         lstMessages : TListBox;
+         lLayout     : TLayout;
+         btnJoinGame : TButton;
+         btnHostGame : TButton;
+         edtChat     : TEdit;
+         lblStatus   : TLabel;
 
-      procedure btnHostGameClick(Sender     : TObject);
-      procedure btnJoinGameClick(Sender     : TObject);
-      procedure edtChatKeyPress(Sender      : TObject;
-                                var Key     : Word;
-                                var KeyChar : WideChar;
-                                Shift       : TShiftState);
-
+         procedure btnHostGameClick(Sender     : TObject);
+         procedure btnJoinGameClick(Sender     : TObject);
+         procedure edtChatKeyPress(Sender      : TObject;
+                                   var Key     : Word;
+                                   var KeyChar : WideChar;
+                                   Shift       : TShiftState);
       private
          FNetworkManager  : TNetManager;
          FSelectedSession : TTuxfraSessionItem;
@@ -55,11 +56,13 @@ type
          procedure HandleRoleChange(const aRole: TuNetworkRole);
          procedure HandleGameSession(const aGameSession: TuGameSession);
          procedure lstGameItemClick(const aSender: TCustomListBox; const aItem: TListBoxItem);
+
       public
          constructor Create(aOwner: TComponent); override;
          destructor Destroy; override;
 
          procedure DebounceGameJoin(aSender: TObject);
+         function GetGameTypeFrameClass(aName: String): TFrameClass;
    end;
 
 var
@@ -72,6 +75,27 @@ implementation
 uses
    uxfrmBase,
    uxfrmLoader;
+
+constructor TxfraNetMenu.Create(aOwner: TComponent);
+   var
+      aLogMsg: TuLogEventData;
+begin
+   inherited Create(aOwner);
+   FNetworkManager               := TNetManager.Get;
+   FNetworkManager.OnLog         := HandleNetworkLogging;
+   FNetworkManager.OnRoleChange  := HandleRoleChange;
+   FNetworkManager.OnGameSession := HandleGameSession;
+
+   edtChat.OnKeyDown             := edtChatKeyPress;
+   lstGames.OnItemClick          := lstGameItemClick;
+
+   btnHostGame.Enabled := False;
+   btnJoinGame.Enabled := False;
+
+   FNetworkManager.Start;
+   aLogMsg := TuLogEventData.Create('Network Mananger Initalized...', mtSystem);
+   HandleNetworkLogging(aLogMsg);
+end;
 
 procedure TxfraNetMenu.btnHostGameClick(Sender: TObject);
    var
@@ -108,6 +132,8 @@ procedure TxfraNetMenu.DebounceGameJoin(aSender: TObject);
       aSession     : TuGameSession;
       aIsConnected : Boolean;
       aForm        : TForm;
+      aFrame       : TFrame;
+      aFC          : TFrameClass;
 begin
    aSession                := FSelectedSession.GameSession;
    TTimer(aSender).Enabled := False;
@@ -117,7 +143,24 @@ begin
 
    if aIsConnected then begin
       aForm := TForm(Self.Root.GetObject);
-      TxFrmBase(aForm).Loader.LoadFrame(TxfrmPong);
+
+      //this should be a parent frame class that implmented the
+      //system to handle setting up a game in ethier singleplayer or multiplayer
+      //mode, then we just create it, set the callbacks, and a ismultiplayer
+      //since those are in the parent class then just cast the frame to the aFC
+      //when loadframe is called. this would make it so many games could be created
+      //all just inheriting the main class. and then we we setup types
+      //and the game type list in the create game frame, then we could just
+      //setup a lookup to see if the right functions are impemented, if not, its
+      //not a multiplayer game, well the games should be stored in a dictionary but yea
+
+      aFC := GetGameTypeFrameClass(aSession.FGameType);
+      aFrame := aFC.Create(TxFrmBase(aForm).Loader.Container);
+
+      NetMgr.OnGameUpdate := TuxfraGame(aFrame).HandleGamePacket;
+      TuxfraGame(aFrame).IsMultiplayer := True;
+
+      TxFrmBase(aForm).Loader.LoadFrame(aFrame);
    end {IF}
    else begin
       HandleNetworkLogging(TuLogEventData.Create('Failed to Connect to Game Server, Try Again...', mtError));
@@ -125,27 +168,6 @@ begin
 
       NetMgr.GameClient.Free;
    end; {ELSE}
-end;
-
-constructor TxfraNetMenu.Create(aOwner: TComponent);
-   var
-      aLogMsg: TuLogEventData;
-begin
-   inherited Create(aOwner);
-   FNetworkManager               := TNetManager.Get;
-   FNetworkManager.OnLog         := HandleNetworkLogging;
-   FNetworkManager.OnRoleChange  := HandleRoleChange;
-   FNetworkManager.OnGameSession := HandleGameSession;
-
-   edtChat.OnKeyDown             := edtChatKeyPress;
-   lstGames.OnItemClick          := lstGameItemClick;
-
-   btnHostGame.Enabled := False;
-   btnJoinGame.Enabled := False;
-
-   FNetworkManager.Start;
-   aLogMsg := TuLogEventData.Create('Network Mananger Initalized...', mtSystem);
-   HandleNetworkLogging(aLogMsg);
 end;
 
 procedure TxfraNetMenu.edtChatKeyPress(Sender      : TObject;
@@ -162,6 +184,28 @@ begin
          Key := 0;
       end; {IF}
    end; {IF}
+end;
+
+function StringToGameType(aName: String): TuGameType;
+begin
+   case IndexStr(aName, ['Pong']) of
+      0: Result := gtPong;
+   else
+      Result := gtNone;
+   end;
+
+end;
+
+function TxfraNetMenu.GetGameTypeFrameClass(aName: String): TFrameClass;
+   var
+      aEType: TuGameType;
+begin
+   Result := TFrame;
+   aEType := StringToGameType(aName);
+
+   case aEType of
+      gtPong: Result := TxfrmPong;
+   end;
 end;
 
 procedure TxfraNetMenu.HandleGameSession(const aGameSession: TuGameSession);
@@ -201,6 +245,9 @@ end;
 
 procedure TxfraNetMenu.HandleRoleChange(const aRole: TuNetworkRole);
 begin
+   if not Assigned(lblStatus) then Exit;
+
+
    if aRole <> nrNone then begin
       btnHostGame.Enabled := True;
    end; {IF}
@@ -250,6 +297,7 @@ end;
 
 destructor TxfraNetMenu.Destroy;
 begin
+   NetMgr.Disable;
 
    inherited Destroy;
 end;

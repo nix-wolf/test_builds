@@ -24,6 +24,8 @@ type
          lytContainer: TLayout;
          procedure FormCreate(aSender: TObject);
          procedure FormDelete(aSender: TObject);
+         procedure FormKeyDown(aSender: TObject; var aKey: Word; var aKeyChar: Char; aShift: TShiftState);
+
       private
          FLoader: TxfrmLoader;
          FNetMgr: TNetManager;
@@ -48,6 +50,10 @@ implementation
 constructor TxfrmBase.Create(aOwner: TComponent);
 begin
    inherited Create(AOwner);
+
+   OnCreate  := FormCreate;
+   OnDestroy := FormDelete;
+   OnKeyDown := FormKeyDown;
 end;
 
 procedure TxfrmBase.FormCreate(aSender: TObject);
@@ -70,6 +76,17 @@ end;
 procedure TxfrmBase.FormDelete(aSender: TObject);
 begin
    FLoader.Free;
+end;
+
+procedure TxfrmBase.FormKeyDown(aSender  : TObject;
+                                var aKey : Word;
+                                var aKeyChar: Char;
+                                aShift   : TShiftState);
+begin
+   if aKey = vkEscape then begin
+      Loader.PopFrame;
+      aKey := 0;
+   end;
 end;
 
 destructor TxfrmBase.Destroy;

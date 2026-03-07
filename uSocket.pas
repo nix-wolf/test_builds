@@ -254,7 +254,18 @@ end;
 
 procedure TuSocket.Close;
 begin
-      //Called on application close
+   if Assigned(FReadThread) then begin
+      FReadThread.Terminate;
+      FReadThread.WaitFor;
+      FreeAndNil(FReadThread);
+   end;
+
+
+   if FSocket <> INVALID_SOCKET then begin
+      ShutDown(FSocket, SD_BOTH);
+      CloseSocket(FSocket);
+      FSocket := INVALID_SOCKET;
+   end;
 end;
 
 procedure TuSocket.Disconnect;
@@ -264,7 +275,7 @@ end;
 
 destructor TuSocket.Destroy;
 begin
-      //handle free objects
+  Close;
   inherited;
 end;
 

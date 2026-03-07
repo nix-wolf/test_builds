@@ -9,6 +9,7 @@ uses
    System.Classes,
    System.Variants,
    System.Generics.Collections,
+   uNetworkTypes,
    uxfraPong,
    uxfraSnake,
    FMX.Types,
@@ -21,8 +22,6 @@ uses
    FMX.Layouts;
 
 type
-   TFrameClass = class of TFrame;
-
    TxfrmLoader = class
       sldLayout     : TScaledLayout;
       private
@@ -32,8 +31,11 @@ type
          constructor Create(aContainer: TControl);
          destructor Destroy; override;
 
-         function LoadFrame(aFC: TFrameClass; aActive: Boolean = True; aFrame: TFrame = nil): TFrame;
+         function LoadFrame(aFrame: TFrame): TFrame; overload;
+         function LoadFrame(aFC: TFrameClass; aActive: Boolean = True; aFrame: TFrame = nil): TFrame; overload;
          procedure PopFrame(aFrame: TFrame = nil);
+
+         property Container: TControl read FContainer;
    end;
 
 var
@@ -46,6 +48,22 @@ begin
    inherited Create;
    FContainer := aContainer;
    FFrames := TObjectList<TFrame>.Create(True);
+end;
+
+function TxfrmLoader.LoadFrame(aFrame: TFrame): TFrame;
+begin
+   Result := aFrame;
+
+   Result.Width       := FContainer.Width;
+   Result.Height      := FContainer.Height;
+
+   Result.Align       := TAlignLayout.Contents;
+   Result.Visible     := True;
+
+   Result.CanFocus    := True;
+   Result.SetFocus;
+
+   FFrames.Add(Result);
 end;
 
 function TxfrmLoader.LoadFrame(aFC: TFrameClass; aActive: Boolean = True; aFrame: TFrame = nil): TFrame;
@@ -87,7 +105,7 @@ procedure TxfrmLoader.PopFrame(aFrame: TFrame);
    var
       aTarget: TFrame;
 begin
-   if FFrames.Count = 0 then Exit;
+   if FFrames.Count = 1 then Exit;
 
    aTarget := aFrame;
    if aTarget = nil then aTarget := FFrames.Last;
@@ -123,5 +141,10 @@ begin
    inherited Destroy;
 end;
 
+
+function TxfrmLoader.LoadFrame(aFrame: TFrame): TFrame;
+begin
+
+end;
 
 end.

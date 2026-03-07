@@ -46,10 +46,13 @@ type
          FGameName           : String; //probably should be moved to session
          FName               : String; //is the user name
          FIP                 : String;
+         FEnabled            : Boolean;
+
 
          FOnLog              : TUIEvent<TuLogEventData>;
          FOnRoleChange       : TUIEvent<TuNetworkRole>;
          FOnGameSession      : TUIEvent<TuGameSession>;
+         FOnGameUpdate       : TuPacketHandler;
          //timer functions
          procedure OnBroadcastTimer    (aSender: TObject);
          procedure OnCleanUpTimer      (aSender: TObject);
@@ -72,6 +75,8 @@ type
       public
          constructor Create;
          destructor Destroy; override;
+         procedure Enable;
+         procedure Disable;
 
          procedure Start;
          procedure StartServer(aServer: TuTCPServer; const aPort: Integer);
@@ -95,6 +100,7 @@ type
          class property OnLog             : TUIEvent<TuLogEventData> read FOnLog             write FOnLog;
          class property OnRoleChange      : TUIEvent<TuNetworkRole>  read FOnRoleChange      write FOnRoleChange;
          class property OnGameSession     : TUIEvent<TuGameSession>  read FOnGameSession     write FOnGameSession;
+         class property OnGameUpdate      : TuPacketHandler          read FOnGameUpdate      write FOnGameUpdate;
          class property DiscoveryAttempts : Integer                  read FDiscoveryAttempts write FDiscoveryAttempts;
 
          class function Get               : TNetManager;
@@ -118,6 +124,12 @@ begin
    if StartupResult <> 0 then begin
       raise Exception.Create('Critical: WSAStartup failed with error: ' + IntToStr(StartupResult));
    end; {IF}
+
+   Enable;
+end;
+
+procedure TNetManager.Enable;
+begin
    //Should be read from .ini
    FServerPort              := 6000;
    FDispatcher              := TuNEtworkDispatcher.Create;
@@ -131,13 +143,15 @@ begin
    FBroadcastTimer.Enabled  := False;
    FBroadcastTimer.Interval := 2000;
    FBroadcastTimer.OnTimer  := OnBroadcastTimer;
-
+   FEnabled                 := True;
    //Setup GameTimer variables
    //Setup CleanUpTimer variables (Doesnt start till first session received, and shuts off when none are left)
 end;
 
 procedure TNetManager.Start;
 begin
+   if not FEnabled then Enable;
+
    FIP                 := GetLocalIP;
    FUDP.OnDataReceived := OnUDPMessage;
    FUDP.Start;
@@ -425,18 +439,27 @@ end;
 //// Deconstruction
 ///////////////////////////////////////////////////////////////////////////////
 
-destructor TNetManager.Destroy;
+procedure TNetManager.Disable;
 begin
    if Assigned(FBroadcastTimer) then begin
       FBroadcastTimer.Enabled := False;
-      FreeAndNil(FBroadcastTimer);
+      FreeAndNil(FBroadcastTimer);   w
    end; {IF}
    if Assigned(FUDP)        then FreeAndNil(FUDP);
    if Assigned(FTCPClient)  then FreeAndNil(FTCPClient);
    if Assigned(FTCPServer)  then FreeAndNil(FTCPServer);
+   if Assigned(FTCPGameServer) then FreeAndNil(FTCPGameServer);
+   if Assigned(FTCPGameClient) then FreeAndNil(FTCPGameClient);
+
    if Assigned(FDispatcher) then FreeAndNil(FDispatcher);
 
    FreeAndNil(FActiveSessions);
+   FEnabled := False;
+end;
+
+destructor TNetManager.Destroy;
+begin
+   Disable;
 
    WSACleanup();
    inherited;

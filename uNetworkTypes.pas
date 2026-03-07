@@ -15,6 +15,9 @@ type
    TuMessageType = (mtSystem, mtError, mtIn, mtLocal);
    TuPacketFlag  = (pfCHAT, pfVEWLF, pfSES, pfJOIN, pfUPD, pfHTB, pfCLS, pfKIL, pfSHFT);
    TuNetProtocol = (npUDP, npTCP);
+   TuGameType    = (gtNone, gtPong);
+
+   TFrameClass = class of TFrame;
 
    TuLogEventData = record
       FMsg      : String;
@@ -57,12 +60,15 @@ type
 
 
    TuPacketRoutine      = reference to procedure(const P: TuPacket);
+   TLogEvent            = procedure(aMsg: String; aType: TuMessageType);
+
+   TuPacketHandler      = procedure(const P: TuPacket) of Object;
    TClientConnectEvent  = procedure(aSocket: TSocket; aAddr: SockAddr_In) of Object;
    TOnDataReceived      = procedure(const aIP, aData: String) of Object;
+   TSessionCreatedEvent = procedure(const ASessionName: string) of object;
+
    TUIEvent<T>          = procedure(aT: T) of Object;
    TUIEvent2<T, T2>     = procedure(aT: T; aT2: T2) of Object;
-   TLogEvent            = procedure(aMsg: String; aType: TuMessageType);
-   TSessionCreatedEvent = procedure(const ASessionName: string) of object;
 
    TuMultiRoleHandler = record
       Roles: array[TuNetworkRole] of TuPacketRoutine;

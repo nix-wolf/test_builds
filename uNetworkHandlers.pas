@@ -335,7 +335,8 @@ end;
 
 class procedure TuNetworkHandler.ServerCLSHandler(const aP: TuPacket);
 begin
-   //hmmm not sure ethier what server would do here
+   //hmmm not sure ethier what server would do here, probably same as the
+   //hub
 end;
 
 class procedure TuNetworkHandler.HubCLSHandler(const aP: TuPacket);

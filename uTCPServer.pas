@@ -137,15 +137,30 @@ end;
 procedure TuTCPServer.Stop;
 begin
    FActive := False;
-   if Assigned(FListener) then FListener.Close;
+
+   if Assigned(FJoinThread) then begin
+      FJoinThread.Terminate;
+
+      if Assigned(FListener) then
+         FListener.Close;
+
+      FJoinThread.WaitFor;
+      FreeAndNil(FJoinThread);
+   end;
+
+   if Assigned(FClients) then
+      FClients.Clear;
+
+   if Assigned(FJoiners) then FreeAndNil(FJoiners);
+
+   FreeAndNil(FListener);
 end;
 
 destructor TuTCPServer.Destroy;
 begin
    Stop;
-   FClients.Free;
-   FJoiners.Free;
-   FListener.Free;
+
+   inherited;
 end;
 
 end.

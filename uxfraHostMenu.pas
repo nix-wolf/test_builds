@@ -59,7 +59,6 @@ procedure TxFraHostMenu.btnCreateClick(Sender: TObject);
    var
       aSe   : TuGameSession;
       aP    : TuPacket;
-      aForm : TForm;
 begin
    FillChar(aP, SizeOf(aP), 0);
    FillChar(aSe, SizeOf(aSe), 0);
