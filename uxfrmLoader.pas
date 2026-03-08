@@ -53,6 +53,7 @@ end;
 function TxfrmLoader.LoadFrame(aFrame: TFrame): TFrame;
 begin
    Result := aFrame;
+   Result.Parent := FContainer;
 
    Result.Width       := FContainer.Width;
    Result.Height      := FContainer.Height;
@@ -130,10 +131,6 @@ begin
    end; {IF}
 
 end;
-
-//Will need to disable the back button in game but should exist every where
-//else. Will also need ot handle inactivating all the network components
-//when we close the multiplayer menu.
 
 destructor TxfrmLoader.Destroy;
 begin

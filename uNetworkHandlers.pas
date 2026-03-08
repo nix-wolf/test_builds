@@ -190,7 +190,10 @@ end;
 class procedure TuNetworkHandler.NoneVEWLFHandler(const aP: TuPacket);
 begin
    with NetMgr do begin
-      Role := nrClient;
+      TCPClient.Role := nrClient;
+      UDP.Role       := nrClient;
+      Role           := nrClient;
+      UpdateRoleToUI;
       //Connect to server TCP is on 6001
       Connect(aP.FIP, ServerPort + 1);
    end;

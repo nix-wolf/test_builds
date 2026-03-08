@@ -118,18 +118,18 @@ end;
 
 procedure TuReadThread.ListenExecute;
 var
-   aBuffer    : TBytes;
-   aLen       : Integer;
-   RemoteAddr : sockaddr_in;
-   AddrLen    : Integer;
-   aIP, aData : string;
+   aBuffer     : TBytes;
+   aLen        : Integer;
+   aRemoteAddr : SockAddr_In;
+   aAddrLen    : Integer;
+   aIP, aData  : String;
 begin
    SetLength(aBuffer, FBufferSize);
 
    while not Terminated do begin
       Sleep(1);
-      AddrLen := SizeOf(RemoteAddr);
-      FillChar(RemoteAddr, AddrLen, 0);
+      aAddrLen := SizeOf(aRemoteAddr);
+      FillChar(aRemoteAddr, aAddrLen, 0);
 
       if IsDataOnWire(100) then begin
          if Terminated then Exit;
@@ -139,16 +139,16 @@ begin
             aBuffer[0],
             Length(aBuffer),
             0,
-            sockaddr(RemoteAddr),
-            AddrLen
+            SockAddr(aRemoteAddr),
+            aAddrLen
          );
 
          if aLen > 0 then begin
-            aIP := string(inet_ntoa(RemoteAddr.sin_addr));
+            aIP := String(Inet_Ntoa(aRemoteAddr.Sin_Addr));
             aData := TEncoding.UTF8.GetString(aBuffer, 0, aLen);
 
             if Assigned(FOnDataReceived) then begin
-               TThread.Queue(nil, procedure begin FOnDataReceived(aIP, aData.Trim); end);
+               TThread.Queue(nil, procedure begin FOnDataReceived(aIP, aData.Trim, aRemoteAddr.sin_port); end);
             end; {IF}
 
          end {IF}

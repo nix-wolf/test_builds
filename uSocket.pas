@@ -16,7 +16,7 @@ type
          FReadThread     : TThread;
          FAddress        : SockAddr_In;
          FProtocol       : TuNetProtocol;
-
+         FRole           : TuNetworkRole;
          FOnDataReceived : TOnDataReceived;
          FOnConnect      : TClientConnectEvent;
 
@@ -46,8 +46,9 @@ type
          property Port           : U_Short             read FAddress.Sin_Port;
          property Get            : TSocket             read FSocket;
          property Protocol       : TuNetProtocol       read FProtocol;
+         property Role           : TuNetworkRole       read FRole           write FRole;
          property OnDataReceived : TOnDataReceived     read FOnDataReceived write FOnDataReceived;
-         property OnConnect      : TClientConnectEvent read FOnConnect write FOnConnect;
+         property OnConnect      : TClientConnectEvent read FOnConnect      write FOnConnect;
          //ondisconnect
    end;
 
@@ -91,6 +92,7 @@ begin
    aA.Sin_Addr.S_Addr := INADDR_ANY;
    FAddress           := aA;
    FProtocol          := aProtocol;
+   FRole              := nrNone;
 
    if aProtocol = npUDP then
       FisConnected := True;
@@ -102,6 +104,7 @@ constructor TuSocket.Create(aSocket: TSocket;
                             aOnData: TOnDataReceived);
 begin
    FAddress        := IPToAddr(aIP, aPort);
+   FRole           := nrNone;
    FSocket         := aSocket;
    FProtocol       := npTCP;
    FOnDataReceived := aOnData;

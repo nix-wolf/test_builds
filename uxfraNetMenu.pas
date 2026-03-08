@@ -144,16 +144,6 @@ begin
    if aIsConnected then begin
       aForm := TForm(Self.Root.GetObject);
 
-      //this should be a parent frame class that implmented the
-      //system to handle setting up a game in ethier singleplayer or multiplayer
-      //mode, then we just create it, set the callbacks, and a ismultiplayer
-      //since those are in the parent class then just cast the frame to the aFC
-      //when loadframe is called. this would make it so many games could be created
-      //all just inheriting the main class. and then we we setup types
-      //and the game type list in the create game frame, then we could just
-      //setup a lookup to see if the right functions are impemented, if not, its
-      //not a multiplayer game, well the games should be stored in a dictionary but yea
-
       aFC := GetGameTypeFrameClass(aSession.FGameType);
       aFrame := aFC.Create(TxFrmBase(aForm).Loader.Container);
 

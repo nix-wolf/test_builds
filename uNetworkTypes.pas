@@ -64,7 +64,7 @@ type
 
    TuPacketHandler      = procedure(const P: TuPacket) of Object;
    TClientConnectEvent  = procedure(aSocket: TSocket; aAddr: SockAddr_In) of Object;
-   TOnDataReceived      = procedure(const aIP, aData: String) of Object;
+   TOnDataReceived      = procedure(const aIP, aData: String; aPort: U_SHORT) of Object;
    TSessionCreatedEvent = procedure(const ASessionName: string) of object;
 
    TUIEvent<T>          = procedure(aT: T) of Object;

@@ -159,13 +159,35 @@ end;
 
 procedure TxfrmPong.SetupBall;
    var
-      aYDirection: Integer;
-      aXDirection: Integer;
+      aYDirection : Integer;
+      aXDirection : Integer;
+      aGP         : TGradientPoint;
 begin
    cirBall.Width       := 9;
    cirBall.Height      := 9;
-   cirBall.Fill.Color  := FObjColor;
-   cirBall.Stroke.Kind := TBrushKind.None;
+
+   if IsMultiplayer then begin
+      cirBall.Fill.Kind      := TBrushKind.Gradient;
+
+      cirBall.Fill.Gradient.Points.Clear;
+      aGP        := cirBall.Fill.Gradient.Points.Add as TGradientPoint;
+      aGP.Color  := FObjColor;
+      aGP.Offset := 0.0;
+
+      aGP        := cirBall.Fill.Gradient.Points.Add as TGradientPoint;
+      aGP.Color  := FObjColor2;
+      aGP.Offset := 1.0;
+
+      cirBall.Fill.Gradient.StartPosition.X := 0;
+      cirBall.Fill.Gradient.StartPosition.Y := 0;
+      cirBall.Fill.Gradient.StopPosition.X  := 1;
+      cirBall.Fill.Gradient.StopPosition.Y  := 0;
+   end
+   else begin
+      cirBall.Fill.Color  := FObjColor;
+      cirBall.Fill.Kind := TBrushKind.None;
+   end;
+
    cirBall.Position.X  := Self.Width/2 - cirBall.Width/2;
    cirBall.Position.Y  := Self.Height/2 - cirBall.Height/2;
    cirBall.HitTest     := False;
@@ -181,7 +203,7 @@ end;
 
 procedure TxfrmPong.SetupBorder;
    var
-      GP: TGradientPoint;
+      aGP: TGradientPoint;
 begin
    //Setup Color to be hald one half another if multiplayer
    recBorder.HitTest          := False;
@@ -193,21 +215,13 @@ begin
       recBorder.Stroke.Kind      := TBrushKind.Gradient;
 
       recBorder.Stroke.Gradient.Points.Clear;
-      GP        := recBorder.Stroke.Gradient.Points.Add as TGradientPoint;
-      GP.Color  := FObjColor;
-      GP.Offset := 0.0;
+      aGP        := recBorder.Stroke.Gradient.Points.Add as TGradientPoint;
+      aGP.Color  := FObjColor;
+      aGP.Offset := 0.0;
 
-      GP        := recBorder.Stroke.Gradient.Points.Add as TGradientPoint;
-      GP.Color  := FObjColor;
-      GP.Offset := 0.5;
-
-      GP        := recBorder.Stroke.Gradient.Points.Add as TGradientPoint;
-      GP.Color  := FObjColor2;
-      GP.Offset := 0.5;
-
-      GP        := recBorder.Stroke.Gradient.Points.Add as TGradientPoint;
-      GP.Color  := FObjColor2;
-      GP.Offset := 1.0;
+      aGP        := recBorder.Stroke.Gradient.Points.Add as TGradientPoint;
+      aGP.Color  := FObjColor2;
+      aGP.Offset := 1.0;
 
       recBorder.Stroke.Gradient.StartPosition.X := 0;
       recBorder.Stroke.Gradient.StartPosition.Y := 0;
@@ -250,7 +264,11 @@ begin
    FPlayer2ScoreInt      := 0;
    txtPlayer2Score.Position.X := Self.Width/2 + 100;
    txtPlayer2Score.Text  := FloatToStr(FPlayer2ScoreInt);
-   txtPlayer2Score.Color := FObjColor;
+
+   if IsMultiplayer then
+      txtPlayer2Score.Color := FObjColor2
+   else
+      txtPlayer2Score.Color := FObjColor;
 
    txtMessageBox.Text    := 'Click Mouse To Start!';
    txtMessageBox.Color   := FObjColor;

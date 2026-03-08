@@ -58,8 +58,8 @@ type
          procedure OnCleanUpTimer      (aSender: TObject);
 
          //primary message handlers
-         procedure OnTCPMessage        (const aIP, aMsg: String);
-         procedure OnUDPMessage        (const aIP, aMsg: String);
+         procedure OnTCPMessage        (const aIP, aMsg: String; aPort: U_SHORT);
+         procedure OnUDPMessage        (const aIP, aMsg: String; aPort: U_SHORT);
 
          //client functions
          procedure OnConnect           (const aIP: String; const aPort: Integer);
@@ -199,7 +199,9 @@ begin
 
    if FRole = nrNone then begin
       if FDiscoveryAttempts >= 3 then begin
-         FRole := nrHub;
+         FTCPServer.Role := nrHub;
+         FUDP.Role       := nrHub;
+         FRole           := nrHub;
 
       UpdateRoleToUI;
       StartServer(FTCPServer, FServerPort);
@@ -237,8 +239,10 @@ procedure TNetManager.Send(aP: TuPacket);
       aCmd: TuPacketFlag;
       aLogMsg: TuLogEventData;
 begin
-   //Probably should have a way to ensure the connection is good... active in the socket
    aCmd := TRttiEnumerationType.GetValue<TuPacketFlag>(aP.FCommand);
+
+   //when we call send, who are we sending it to? how do we determine
+   //that based on the system?
 
    case FRole of
       nrNone: begin
@@ -323,20 +327,29 @@ end;
 ///////////////////////////////////////////////////////////////////////////////
 
 ///COMPRESS TO A SINGLE CALL THEY ARE BOTH JUST DIFFERENTIATED BY PROTOCOL, which could be passed from on step down
-procedure TNetManager.OnTCPMessage(const aIP, aMsg: String);
+procedure TNetManager.OnTCPMessage(const aIP, aMsg: String; aPort: U_SHORT);
    var
-      aPacket: TuPacket;
+      aPacket : TuPacket;
+      aRole   : TuNetworkRole;
 begin
 //   LogToUI('Message Received TCP::');
 //   if aIP = FIP then Exit; // do i need this on the tcp side? pfUPD cant have it
+   aRole := nrNone;
 
    aPacket.FromString(aMsg);
    aPacket.FIP := aIP;
 
-   FDispatcher.HandlePacket(aPacket, npTCP, FRole);
+   if aPort < 6015 then
+      aRole := FTCPServer.Role
+   else if aPort < 24015 then
+      aRole := GameServer.Role
+   else
+      aRole := FTCPClient.Role;
+
+   FDispatcher.HandlePacket(aPacket, npTCP, aRole);
 end;
 
-procedure TNetManager.OnUDPMessage(const aIP, aMsg: String);
+procedure TNetManager.OnUDPMessage(const aIP, aMsg: String; aPort: U_SHORT);
    var
       aPacket: TuPacket;
 begin
@@ -346,7 +359,7 @@ begin
    aPacket.FromString(aMsg);
    aPacket.FIP := aIP;
 
-   FDispatcher.HandlePacket(aPacket, npUDP, FRole);
+   FDispatcher.HandlePacket(aPacket, npUDP, FUDP.Role);
 end;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -443,7 +456,7 @@ procedure TNetManager.Disable;
 begin
    if Assigned(FBroadcastTimer) then begin
       FBroadcastTimer.Enabled := False;
-      FreeAndNil(FBroadcastTimer);   w
+      FreeAndNil(FBroadcastTimer);
    end; {IF}
    if Assigned(FUDP)        then FreeAndNil(FUDP);
    if Assigned(FTCPClient)  then FreeAndNil(FTCPClient);
