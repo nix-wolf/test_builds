@@ -96,7 +96,7 @@ begin
       aTarget.Root.Focused := nil;
 
    if Screen.ActiveForm <> nil then
-      Screen.ActiveForm.MouseCaptured := nil;
+      Screen.ActiveForm.MouseCapture;
 
 //   aTarget.AnimateFloat('Opacity', 0, 0.3);
    aTarget.Visible := False;

@@ -1,0 +1,489 @@
+unit uNetManager;
+
+interface
+
+uses
+   System.UITypes,
+   Winapi.Winsock2,
+   System.Generics.Collections,
+   System.SysUtils,
+   System.Classes,
+   System.DateUtils,
+   System.Rtti,
+   Vcl.ExtCtrls,
+   uTCPRemoteClient,
+   uNetworkDispatcher,
+   uNetworkTypes,
+   uTCPServer,
+   uSocket;
+
+type
+   TUIEvent<T> = procedure(const aT: T) of Object;
+
+   TNetManager = class
+      private
+         class var FInstance : TNetManager;
+         WSAData             : TWSAData;
+         StartupResult       : Integer;
+
+         FUDP                : TuSocket;
+         FTCPClient          : TuSocket;
+         FTCPGameClient      : TuSocket;
+         FTCPServer          : TuTCPServer;
+         FTCPGameServer      : TuTCPServer;
+         FDispatcher         : TuNetworkDispatcher;
+         FRole               : TuNetworkRole;
+         //Should be in server
+         FActiveSessions     : TList<TuGameSession>;
+         FBroadCastTimer     : TTimer;
+         FGameUpdateTimer    : TTimer;
+         FCleanUpTimer       : TTimer;
+         //should be pulled for ini file?
+         FServerPort         : Integer;
+         //can this be moved into discovery of just doing the discovery in a loop
+         FDiscoveryAttempts  : Integer;
+         FHubIP              : String;
+         FGameName           : String; //probably should be moved to session
+         FName               : String; //is the user name
+         FIP                 : String;
+         FEnabled            : Boolean;
+
+
+         FOnLog              : TUIEvent<TuLogEventData>;
+         FOnRoleChange       : TUIEvent<TuNetworkRole>;
+         FOnGameSession      : TUIEvent<TuGameSession>;
+         FOnGameUpdate       : TuPacketHandler;
+         //timer functions
+         procedure OnBroadcastTimer    (aSender: TObject);
+         procedure OnCleanUpTimer      (aSender: TObject);
+
+         //primary message handlers
+         procedure OnTCPMessage        (const aIP, aMsg: String; aPort: U_SHORT);
+         procedure OnUDPMessage        (const aIP, aMsg: String; aPort: U_SHORT);
+
+         //client functions
+         procedure OnConnect           (const aIP: String; const aPort: Integer);
+//         procedure OnDisconnect     (aSender: TObject);
+         //server functions
+         procedure OnConnected         (aSocket: TSocket; aAddr: SockAddr_In);
+         procedure OnDisconnected      (aSocket: TSocket; aAddr: SockAddr_In);
+         //Wrapper for UI events to return data to the ui
+         procedure UIEventCallback<T>  (aEvent: TUIEvent<T>; aT: T); overload;
+//         procedure UIEventCallback<T, T2>  (aEvent: TUIEvent2<T, T2>; aT: T; aT2: T2); overload;
+
+         function GetLocalIP: string;
+      public
+         constructor Create;
+         destructor Destroy; override;
+         procedure Enable;
+         procedure Disable;
+
+         procedure Start;
+         procedure StartServer(aServer: TuTCPServer; const aPort: Integer);
+         procedure Connect(const aIP: String; const aPort: Integer);
+         procedure Send(aP: TuPacket);
+         //call backs for returning data to parent frame
+         procedure LogToUI(aMsg: String; aType: TuMessageType);
+         procedure UpdateRoleToUI;
+         procedure GameSessionToUI(aGameSession: TuGameSession);
+
+         class property IP                : String                   read FIP;
+         class property UDP               : TuSocket                 read FUDP;
+         class property TCPClient         : TuSocket                 read FTCPClient;
+         class property TCPServer         : TuTCPServer              read FTCPServer;
+         class property GameServer        : TuTCPServer              read FTCPGameServer;
+         class property ServerPort        : Integer                  read FServerPort;
+         class property GameClient        : TuSocket                 read FTCPGameClient     write FTCPGameClient;
+         class property GameSessions      : TList<TuGameSession>     read FActiveSessions    write FActiveSessions;
+         class property Role              : TuNetworkRole            read FRole              write FRole;
+         class property BroadcastTimer    : TTimer                   read FBroadcastTimer    write FBroadcastTimer;
+         class property OnLog             : TUIEvent<TuLogEventData> read FOnLog             write FOnLog;
+         class property OnRoleChange      : TUIEvent<TuNetworkRole>  read FOnRoleChange      write FOnRoleChange;
+         class property OnGameSession     : TUIEvent<TuGameSession>  read FOnGameSession     write FOnGameSession;
+         class property OnGameUpdate      : TuPacketHandler          read FOnGameUpdate      write FOnGameUpdate;
+         class property DiscoveryAttempts : Integer                  read FDiscoveryAttempts write FDiscoveryAttempts;
+
+         class function Get               : TNetManager;
+   end;
+
+var
+   NetMgr: TNetManager;
+
+implementation
+
+{ TNetManager }
+
+///////////////////////////////////////////////////////////////////////////////
+//// Construction/Initalization
+///////////////////////////////////////////////////////////////////////////////
+
+constructor TNetManager.Create;
+begin
+   StartupResult := WSAStartup($0202, WSAData);
+
+   if StartupResult <> 0 then begin
+      raise Exception.Create('Critical: WSAStartup failed with error: ' + IntToStr(StartupResult));
+   end; {IF}
+
+   Enable;
+end;
+
+procedure TNetManager.Enable;
+begin
+   //Should be read from .ini
+   FServerPort              := 6000;
+   FDispatcher              := TuNEtworkDispatcher.Create;
+   FUDP                     := TuSocket.Create(npUDP, FServerPort);
+   FTCPClient               := TuSocket.Create(npTCP, FServerPort + 1);
+   FTCPServer               := TuTCPServer.Create;
+
+   FActiveSessions          := TList<TuGameSession>.Create;
+
+   FBroadcastTimer          := TTimer.Create(nil);
+   FBroadcastTimer.Enabled  := False;
+   FBroadcastTimer.Interval := 2000;
+   FBroadcastTimer.OnTimer  := OnBroadcastTimer;
+   FEnabled                 := True;
+   //Setup GameTimer variables
+   //Setup CleanUpTimer variables (Doesnt start till first session received, and shuts off when none are left)
+end;
+
+procedure TNetManager.Start;
+begin
+   if not FEnabled then Enable;
+
+   FIP                 := GetLocalIP;
+   FUDP.OnDataReceived := OnUDPMessage;
+   FUDP.Start;
+
+   FBroadcastTimer.Enabled := True;
+end;
+
+///////////////////////////////////////////////////////////////////////////////
+//// Other
+///////////////////////////////////////////////////////////////////////////////
+
+class function TNetManager.Get: TNetManager;
+begin
+   if FInstance = nil then
+      FInstance := TNetManager.Create;
+   Result := FInstance;
+end;
+
+function TNetManager.GetLocalIP: string;
+var
+   aHostName : array[0..255] of AnsiChar;
+   aHostEnt  : PHostEnt;
+   aAddr     : PInAddr;
+begin
+   Result := '127.0.0.1';
+
+   if GetHostname(aHostName, SizeOf(aHostName)) = 0 then begin
+      aHostEnt := GetHostByName(aHostName);
+      if aHostEnt <> nil then begin
+         aAddr := PInAddr(aHostEnt^.h_addr_list^);
+
+         if aAddr <> nil then
+            Result := string(inet_ntoa(aAddr^));
+      end; {IF}
+   end; {IF}
+end;
+
+procedure TNetManager.OnBroadcastTimer(aSender: TObject);
+begin
+   if (FRole = nrClient) or (FRole = nrServer) then begin
+      if FHubIP <> '' then begin
+//      FUDP.Send('HETB|' + FGameName, FHubIP, FServerPort);
+      end; {IF}
+   end; {IF}
+
+   if FRole = nrNone then begin
+      if FDiscoveryAttempts >= 3 then begin
+         FTCPServer.Role := nrHub;
+         FUDP.Role       := nrHub;
+         FRole           := nrHub;
+
+      UpdateRoleToUI;
+      StartServer(FTCPServer, FServerPort);
+      FBroadcastTimer.Interval := 10000;
+      end {IF}
+      else begin
+         UpdateRoleToUI;
+         LogToUI('Checking for Active Hub', mtSystem);
+         //should be making a proper packet here
+         FUDP.Broadcast(TuPacket.Create(pfVEWLF, '').Parse, FServerPort);
+         Inc(FDiscoveryAttempts);
+      end; {ELSE}
+   end; {IF}
+end;
+
+procedure TNetManager.OnCleanUpTimer(aSender: TObject);
+   var
+      i: Integer;
+begin
+   LogToUI('Cleaning Up Sessions.', mtSystem);
+   TMonitor.Enter(FActiveSessions);
+   try
+      for i := FActiveSessions.Count - 1 downto 0 do begin
+         if SecondsBetween(Now, FActiveSessions[i].FLastSeen) > 10 then begin
+            FActiveSessions.Delete(i);
+         end; {IF}
+      end; {FOR}
+   finally
+      TMonitor.Exit(FActiveSessions);
+   end;
+end;
+
+procedure TNetManager.Send(aP: TuPacket);
+   var
+      aCmd: TuPacketFlag;
+      aLogMsg: TuLogEventData;
+begin
+   aCmd := TRttiEnumerationType.GetValue<TuPacketFlag>(aP.FCommand);
+
+   //when we call send, who are we sending it to? how do we determine
+   //that based on the system?
+
+   case FRole of
+      nrNone: begin
+         if Assigned(UDP) and UDP.IsConnected then begin
+            UDP.Broadcast(aP.Parse, 6000);
+            Exit;
+         end;
+      end;
+      nrClient: begin
+         if Assigned(FTCPClient) and FTCPClient.IsConnected then begin
+            FTCPClient.Send(aP.Parse, '', 0);
+            Exit;
+         end;
+      end;
+      nrServer: begin
+         if Assigned(FTCPClient) and FTCPClient.IsConnected then begin
+            FTCPClient.Send(aP.Parse, '', 0);
+            Exit;
+         end;
+      end;
+      nrHub: begin
+         if Assigned(FTCPServer) then begin
+            case aCmd of
+               pfCHAT: begin
+                  if IP = aP.FIP then
+                     LogtoUI(aP.FData, mtLocal)
+                  else
+                     LogtoUI(aP.FData, mtIn);
+               end;
+               pfVEWLF: LogToUI('Responding to a Hub Search Query', mtSystem);
+               pfSES: LogToUI('Updating Client Session List', mtSystem);
+               pfJOIN: {Handle info for join to respective parties};
+               pfKIL: {causes connection to drop};
+               pfSHFT: {sending a shift will dump data for other hub};
+            end;
+
+            FTCPServer.Broadcast(aP);
+            Exit;
+         end;{end}
+      end;
+
+   end;
+   LogToUI('Not Connected', mtSystem);
+end;
+
+procedure TNetManager.UIEventCallback<T>(aEvent: TUiEvent<T>; aT: T);
+begin
+   if Assigned(aEvent) then begin
+      TThread.Queue(nil, procedure begin
+         aEvent(aT);
+      end);{PROCEDURE}
+   end; {IF}
+end;
+
+//procedure TNetManager.UIEventCallback<T, T2>(aEvent: TUiEvent2<T, T2>; aT: T; aT2: T2);
+//begin
+//   if Assigned(aEvent) then begin
+//      TThread.Queue(nil, procedure begin
+//         aEvent(aT, aT2);
+//      end);{PROCEDURE}
+//   end; {IF}
+//end;
+
+procedure TNetManager.LogToUI(aMsg: String; aType: TuMessageType);
+   var
+      aLogMsg  : TuLogEventData;
+begin
+   aLogMsg        := TuLogEventData.Create(aMsg, aType);
+   UIEventCallback<TuLogEventData>(FOnLog, aLogMsg);
+end;
+
+procedure TNetManager.UpdateRoleToUI;
+   begin UIEventCallback<TuNetworkRole>(FOnRoleChange, FRole); end;
+
+procedure TNetManager.GameSessionToUI(aGameSession: TuGameSession);
+begin
+   UIEventCallback<TuGameSession>(FOnGameSession, aGameSession);
+end;
+
+///////////////////////////////////////////////////////////////////////////////
+//// Primary Message Handlers
+///////////////////////////////////////////////////////////////////////////////
+
+///COMPRESS TO A SINGLE CALL THEY ARE BOTH JUST DIFFERENTIATED BY PROTOCOL, which could be passed from on step down
+procedure TNetManager.OnTCPMessage(const aIP, aMsg: String; aPort: U_SHORT);
+   var
+      aPacket : TuPacket;
+      aRole   : TuNetworkRole;
+begin
+//   LogToUI('Message Received TCP::');
+//   if aIP = FIP then Exit; // do i need this on the tcp side? pfUPD cant have it
+   aRole := nrNone;
+
+   aPacket.FromString(aMsg);
+   aPacket.FIP := aIP;
+
+   if aPort < 6015 then
+      aRole := FTCPServer.Role
+   else if aPort < 24015 then
+      aRole := GameServer.Role
+   else
+      aRole := FTCPClient.Role;
+
+   FDispatcher.HandlePacket(aPacket, npTCP, aRole);
+end;
+
+procedure TNetManager.OnUDPMessage(const aIP, aMsg: String; aPort: U_SHORT);
+   var
+      aPacket: TuPacket;
+begin
+   if (aIP = FIP) or (aIP = '127.0.0.1') then Exit;
+
+//   LogToUI('Message Received UDP::' + aIP + '@:: ' + aMsg);
+   aPacket.FromString(aMsg);
+   aPacket.FIP := aIP;
+
+   FDispatcher.HandlePacket(aPacket, npUDP, FUDP.Role);
+end;
+
+///////////////////////////////////////////////////////////////////////////////
+//// Client Functions
+///////////////////////////////////////////////////////////////////////////////
+
+procedure TNetManager.Connect(const aIP: String; const aPort: Integer);
+   var
+      aConnection: Boolean;
+      aLogMsg  : TuLogEventData;
+begin
+   FTCPClient.OnDataReceived := OnTCPMessage;
+   aConnection               := FTCPClient.Connect(aIP, aPort);
+
+   if aConnection then OnConnect(aIP, aPort);
+end;
+
+procedure TNetManager.OnConnect(const aIP: String; const aPort: Integer);
+begin
+   FRole := nrClient;
+   UpdateRoleToUI;
+   LogToUI('Connected to: ' + aIP + '@' + IntToStr(aPort), mtSystem);
+end;
+
+///////////////////////////////////////////////////////////////////////////////
+//// Server Functions
+///////////////////////////////////////////////////////////////////////////////
+
+procedure TNetManager.OnConnected(aSocket: TSocket; aAddr: SockAddr_In);
+   var
+      aRConn   : TuTCPRemoteClient;
+      aUSocket : TuSocket;
+      aP       : TuPacket;
+
+begin
+
+   aUSocket := TuSocket.Create(
+      aSocket,
+      TuSocket.IpFromASocket(aSocket),
+      TuSocket.PortFromASocket(aSocket),
+      OnTCPMessage
+   );
+
+   aRConn := TuTCPRemoteClient.Create(
+      Self,
+      aUsocket,
+      aUSocket.IpFromASocket(aSocket)
+   );
+
+   FTCPServer.OnClientConnected(aRConn);
+
+   aP     := TuPacket.Create(pfCHAT, 'Welcome to the lobby!!');
+   aP.FIP := IP;
+   aRConn.Send(aP);
+
+   var aMsg := 'Connection Established: ' + aRConn.IP + '@' + IntToStr(aRConn.Port) + ': Welcome Message Sent';
+   LogToUI(aMsg, mtSystem);
+
+   if FActiveSessions.Count > 0 then begin
+      var aSession: TuGameSession;
+      for aSession in FActiveSessions do begin
+         var aP2 := TuPacket.Create(pfSES, aSession.ToNetworkString);
+         aRConn.Send(aP2);
+      end; {FOR}
+   end; {IF}
+end;
+
+procedure TNetManager.OnDisconnected(aSocket: TSocket; aAddr: SockAddr_In);
+begin
+//   notify server disconnect, kill connections, scrub data for graceful exit
+end;
+
+procedure TNetManager.StartServer(aServer: TuTCPServer; const aPort: Integer);
+   var
+      aLogMsg  : TuLogEventData;
+begin
+
+//   LogToUI('Starting Lobby Server...', mtSystem);
+   aServer                := TuTCPServer.Create;
+   aServer.OnMessage      := OnTCPMessage;
+   aServer.OnLog          := LogToUI;
+   aServer.OnConnected    := OnConnected;
+   aServer.OnDisconnected := OnDisconnected;
+   //should be on 6001, will be 24000+ for actual game servers.
+   aServer.Start(aPort + 1);
+
+end;
+
+///////////////////////////////////////////////////////////////////////////////
+//// Deconstruction
+///////////////////////////////////////////////////////////////////////////////
+
+procedure TNetManager.Disable;
+begin
+   if Assigned(FBroadcastTimer) then begin
+      FBroadcastTimer.Enabled := False;
+      FreeAndNil(FBroadcastTimer);
+   end; {IF}
+   if Assigned(FUDP)        then FreeAndNil(FUDP);
+   if Assigned(FTCPClient)  then FreeAndNil(FTCPClient);
+   if Assigned(FTCPServer)  then FreeAndNil(FTCPServer);
+   if Assigned(FTCPGameServer) then FreeAndNil(FTCPGameServer);
+   if Assigned(FTCPGameClient) then FreeAndNil(FTCPGameClient);
+
+   if Assigned(FDispatcher) then FreeAndNil(FDispatcher);
+
+   FreeAndNil(FActiveSessions);
+   FEnabled := False;
+end;
+
+destructor TNetManager.Destroy;
+begin
+   Disable;
+
+   WSACleanup();
+   inherited;
+end;
+
+initialization
+
+finalization
+   if TNetManager.FInstance <> nil then begin
+      var aInst := TNetManager.FInstance;
+      TNetManager.FInstance := nil;
+      aInst.Free;
+   end; {IF}
+end.
