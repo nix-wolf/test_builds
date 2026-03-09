@@ -243,6 +243,14 @@ begin
 
    //when we call send, who are we sending it to? how do we determine
    //that based on the system?
+   //
+   //
+   // Currently doesnt work have to revise for handling because
+   //
+   //
+   //
+   //
+
 
    case FRole of
       nrNone: begin

@@ -180,7 +180,7 @@ end;
 
 class procedure TuNetworkHandler.HTBHandler(const aP: TuPacket);
 begin
-
+   //do nothing we dont handler heart beats on anyone but hub
 end;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -194,6 +194,7 @@ begin
       UDP.Role       := nrClient;
       Role           := nrClient;
       UpdateRoleToUI;
+
       //Connect to server TCP is on 6001
       Connect(aP.FIP, ServerPort + 1);
    end;
@@ -202,7 +203,6 @@ end;
 class procedure TuNetworkHandler.HubVEWLFHandler(const aP: TuPacket);
 begin
    with NetMgr do begin
-      //may not work?
       UDP.Send(aP.Parse, aP.FIP, ServerPort);
    end;
 end;
@@ -240,7 +240,7 @@ class procedure TuNetworkHandler.HubCHATHandler(const aP: TuPacket);
 begin
    with NetMgr do begin
       Send(aP);
-   end;
+   end; {WITH}
 end;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -312,14 +312,13 @@ end;
 
 class procedure TuNetworkHandler.ClientUPDHandler(const aP: TuPacket);
 begin
-   //gets the data into the game through a callback set in the netmgr
    with NetMgr do
-      //FunctionToGetDataToGameFrameSetOnGameLoad?
+      if Assigned(OnGameUpdate) then OnGameUpdate(aP)
 end;
 
 class procedure TuNetworkHandler.ServerUPDHandler(const aP: TuPacket);
 begin
-   NetMgr.TCPServer.Broadcast(aP);
+   ClientUPDHandler(aP);
 end;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -374,7 +373,6 @@ end;
 ///////////////////////////////////////////////////////////////////////////////
 
 //If there is no one left just kill yourself and be done with it...
-
 class procedure TuNetworkHandler.ClientSHFTHandler(const aP: TuPacket);
 begin
 

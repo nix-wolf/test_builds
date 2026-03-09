@@ -84,6 +84,9 @@ implementation
 
 { TxfrmPong }
 
+uses
+   uNetManager;
+
 constructor TxfrmPong.Create(aOwner: TComponent);
 begin
    inherited Create(aOwner);
@@ -305,22 +308,44 @@ begin
    tmrTimer.Enabled  := False;
 end;
 
+//call back used in the NetworkDispatcher
 procedure TxfrmPong.HandleGamePacket(const aP: TuPacket);
 begin
+
    //unpackes the packdata and handles it accordingly
    //will need ball updates
-   //will need player updates
+
+   //message to update movement
+   //UPD|Y:1:+/-Val  <- Player 1
+   //UPD|Y:2:+/-Val  <- Player 2
+   //UPD|Ball:+/-X,+/-Y  <- Ball update
+   //UPD|Score:1/2  <- who got a goal
+   //UPD|Reset <- is it needed?
+   //UPD|End <-Someone Left, disconnected everyone kills server
 
 end;
 
+//call back for the update loop that will be setup on the tcpserver
 procedure TxfrmPong.ServerGameLoop(Sender: TObject);
 begin
 
+    //recPlayer1.Position.Y := recPlayer1.Position.Y - cPlayerSpeed;
+    //recPlayer1.Position.Y := recPlayer1.Position.Y + cPlayerSpeed;
 end;
 
+//the game loop run in a multiplayer game (everything is handled with packets)
 procedure TxfrmPong.HandleMultiplayer(Sender: TObject);
+   var
+      aP: TuPacket;
 begin
+   aP := TuPacket.Create(pfUPD, '');
 
+   if FKeyUpPressed then
+      aP.FData := 'UP'
+   else if FKeyDownPressed then
+      aP.FData := 'DOWN';
+
+   NetMgr.Send(aP);
 end;
 
 procedure TxfrmPong.HandleSingleplayer(Sender: TObject);
