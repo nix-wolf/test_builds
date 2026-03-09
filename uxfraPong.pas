@@ -35,15 +35,6 @@ type
       txtMessageBox   : TText;
       recBackground   : TRectangle;
 
-      procedure TimerStart(Sender: TObject);
-      procedure FrameMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
-      procedure FrameKeyDown(Sender: TObject; var Key: Word; var KeyChar: Char; Shift: TShiftState);
-      procedure FrameKeyUp(Sender: TObject; var Key: Word; var KeyChar: Char; Shift: TShiftState);
-      procedure SetupBorder;
-      procedure SetupBall;
-      procedure SetupPlayers;
-      procedure SetupGame;
-      procedure SetupTimer;
    private
       FObjColor2       : TAlphaColor;
       FObjColor        : TAlphaColor;
@@ -57,7 +48,18 @@ type
       FBallBounce      : TMediaPlayer;
 
       procedure PlayBounce;
+      procedure TimerStart(Sender: TObject);
+      procedure FrameMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
+      procedure FrameKeyDown(Sender: TObject; var Key: Word; var KeyChar: Char; Shift: TShiftState);
+      procedure FrameKeyUp(Sender: TObject; var Key: Word; var KeyChar: Char; Shift: TShiftState);
+      procedure SetupBorder;
+      procedure SetupBall;
+      procedure SetupPlayers;
+      procedure SetupGame;
+      procedure SetupTimer;
 
+      procedure HandleMultiplayer(Sender: TObject);
+      procedure HandleSingleplayer(Sender: TObject);
    const
       cPlayerWidth  = 10.0;
       cEdgeOffset   = 50.0;
@@ -70,6 +72,7 @@ type
    public
       constructor Create(aOwner: TComponent); override;
       procedure HandleGamePacket(const aP: TuPacket); override;
+      procedure ServerGameLoop(Sender: TObject);
    end;
 
 var
@@ -138,14 +141,6 @@ begin
    tmrTimer.Enabled   := True;
    txtMessageBox.Text := '';
    FGameTime          := Now();
-end;
-
-procedure TxfrmPong.HandleGamePacket(const aP: TuPacket);
-begin
-   //unpackes the packdata and handles it accordingly
-   //will need ball updates
-   //will need player updates
-
 end;
 
 procedure TxfrmPong.PlayBounce;
@@ -310,7 +305,25 @@ begin
    tmrTimer.Enabled  := False;
 end;
 
-procedure TxfrmPong.TimerStart(Sender: TObject);
+procedure TxfrmPong.HandleGamePacket(const aP: TuPacket);
+begin
+   //unpackes the packdata and handles it accordingly
+   //will need ball updates
+   //will need player updates
+
+end;
+
+procedure TxfrmPong.ServerGameLoop(Sender: TObject);
+begin
+
+end;
+
+procedure TxfrmPong.HandleMultiplayer(Sender: TObject);
+begin
+
+end;
+
+procedure TxfrmPong.HandleSingleplayer(Sender: TObject);
    var
       aBThickness: Single;
       aPlayer2Center: Single;
@@ -417,6 +430,15 @@ begin
       tmrTimer.Enabled := False;
    end; {IF}
 //  UpdateDifficulty; Todo
+end;
+
+procedure TxfrmPong.TimerStart(Sender: TObject);
+begin
+   if IsMultiplayer then
+      HandleMultiplayer(Sender)
+   else
+      HandleSinglePlayer(Sender);
+
 end;
 
 end.

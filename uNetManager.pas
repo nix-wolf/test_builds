@@ -339,12 +339,14 @@ begin
    aPacket.FromString(aMsg);
    aPacket.FIP := aIP;
 
-   if aPort < 6015 then
+   if aPort = FTCPServer.Port then
       aRole := FTCPServer.Role
-   else if aPort < 24015 then
+   else if aPort = FTCPGameServer.Port then
       aRole := GameServer.Role
-   else
-      aRole := FTCPClient.Role;
+   else if aPort = FTCPClient.Port then
+      aRole := FTCPClient.Role
+   else if aPort = FTCPGameClient.Port then
+      aRole := FTCPGameClient.Role;
 
    FDispatcher.HandlePacket(aPacket, npTCP, aRole);
 end;
